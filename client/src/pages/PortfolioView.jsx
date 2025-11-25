@@ -372,7 +372,7 @@ export default function PortfolioView() {
                 </span>
               </h1>
               
-              <p className="text-[#A0A0A0] text-base md:text-lg lg:text-xl mb-8 leading-relaxed">
+              <p className="text-[#A0A0A0] text-base md:text-lg lg:text-xl mb-8 leading-relaxed text-justify">
                 {content.hero?.description}
               </p>
 
