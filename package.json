@@ -1,0 +1,16 @@
+{
+  "name": "ai-resume-builder",
+  "version": "1.0.0",
+  "description": "AI-powered Resume Builder and Portfolio Generator SaaS",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/index.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js"
+  },
+  "keywords": ["resume", "portfolio", "ai", "saas"],
+  "author": "",
+  "license": "MIT"
+}
