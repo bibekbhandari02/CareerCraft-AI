@@ -31,6 +31,9 @@ export default function Navbar() {
               <Link to="/dashboard" className="text-gray-700 hover:text-indigo-600 font-medium transition">
                 Dashboard
               </Link>
+              <Link to="/templates" className="text-gray-700 hover:text-indigo-600 font-medium transition">
+                Templates
+              </Link>
               <Link to="/pricing" className="text-gray-700 hover:text-indigo-600 font-medium transition">
                 Pricing
               </Link>
@@ -65,6 +68,9 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="hidden md:flex items-center gap-8">
+              <Link to="/templates" className="text-gray-700 hover:text-indigo-600 font-medium transition">
+                Templates
+              </Link>
               <Link to="/pricing" className="text-gray-700 hover:text-indigo-600 font-medium transition">
                 Pricing
               </Link>
@@ -109,6 +115,13 @@ export default function Navbar() {
                   Dashboard
                 </Link>
                 <Link
+                  to="/templates"
+                  className="block text-gray-700 hover:text-indigo-600 font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Templates
+                </Link>
+                <Link
                   to="/pricing"
                   className="block text-gray-700 hover:text-indigo-600 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
@@ -128,6 +141,13 @@ export default function Navbar() {
               </div>
             ) : (
               <div className="space-y-3">
+                <Link
+                  to="/templates"
+                  className="block text-gray-700 hover:text-indigo-600 font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Templates
+                </Link>
                 <Link
                   to="/pricing"
                   className="block text-gray-700 hover:text-indigo-600 font-medium"
