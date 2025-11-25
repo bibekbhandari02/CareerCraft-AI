@@ -5,7 +5,7 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
-// Get user's portfolio
+// Get user's portfolios
 router.get('/', authenticate, async (req, res) => {
   try {
     const portfolios = await Portfolio.find({ userId: req.userId });
@@ -15,21 +15,45 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Get portfolio by subdomain (public)
+// Get portfolio by subdomain (public) - MUST come before /:id route
 router.get('/public/:subdomain', async (req, res) => {
   try {
+    console.log('🔍 Looking for portfolio with subdomain:', req.params.subdomain);
+    
     const portfolio = await Portfolio.findOne({ 
       subdomain: req.params.subdomain,
       published: true 
     });
     
     if (!portfolio) {
+      console.log('❌ Portfolio not found or not published');
       return res.status(404).json({ error: 'Portfolio not found' });
     }
 
+    console.log('✅ Portfolio found:', portfolio._id);
+    
     // Increment views
     portfolio.views += 1;
     await portfolio.save();
+
+    res.json({ portfolio });
+  } catch (error) {
+    console.error('❌ Error fetching portfolio:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get portfolio by ID
+router.get('/:id', authenticate, async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOne({ 
+      _id: req.params.id, 
+      userId: req.userId 
+    });
+    
+    if (!portfolio) {
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
 
     res.json({ portfolio });
   } catch (error) {

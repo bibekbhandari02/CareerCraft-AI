@@ -52,6 +52,18 @@ const portfolioSchema = new mongoose.Schema({
     description: String,
     keywords: [String]
   },
+  resumeUrl: {
+    type: String,
+    default: ''
+  },
+  logoUrl: {
+    type: String,
+    default: ''
+  },
+  profileImageUrl: {
+    type: String,
+    default: ''
+  },
   published: {
     type: Boolean,
     default: false

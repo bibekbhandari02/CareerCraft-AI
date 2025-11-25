@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ResumeBuilder from './pages/ResumeBuilder';
 import PortfolioBuilder from './pages/PortfolioBuilder';
+import PortfolioView from './pages/PortfolioView';
 import Pricing from './pages/Pricing';
 import Templates from './pages/Templates';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -20,7 +21,8 @@ const PrivateRoute = ({ children }) => {
 
 const Layout = ({ children }) => {
   const location = useLocation();
-  const hideNavbar = ['/login', '/register'].includes(location.pathname);
+  const hideNavbar = ['/login', '/register'].includes(location.pathname) || 
+                     location.pathname.startsWith('/portfolio/public/');
 
   return (
     <>
@@ -57,6 +59,7 @@ function App() {
         <Route path="/portfolio/:id" element={
           <PrivateRoute><PortfolioBuilder /></PrivateRoute>
         } />
+        <Route path="/portfolio/public/:subdomain" element={<PortfolioView />} />
         <Route path="/payment/success" element={
           <PrivateRoute><PaymentSuccess /></PrivateRoute>
         } />

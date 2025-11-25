@@ -13,11 +13,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    // Accept images only
-    if (file.mimetype.startsWith('image/')) {
+    // Accept images and PDFs
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error('Only image and PDF files are allowed!'), false);
     }
   }
 });
@@ -52,17 +52,32 @@ router.post('/image', authenticate, upload.single('image'), async (req, res) => 
       api_secret: process.env.CLOUDINARY_API_SECRET
     });
 
+    // Determine resource type and upload options
+    const isPDF = req.file.mimetype === 'application/pdf';
+    const uploadOptions = {
+      folder: 'resume-builder',
+      resource_type: isPDF ? 'raw' : 'image',
+    };
+
+    // Preserve original filename for PDFs
+    if (isPDF) {
+      // Remove extension and sanitize filename (remove spaces and special chars)
+      const originalName = req.file.originalname
+        .replace(/\.[^/.]+$/, '') // Remove extension
+        .replace(/[^a-zA-Z0-9_-]/g, '_'); // Replace special chars with underscore
+      uploadOptions.public_id = `${originalName}_${Date.now()}`;
+    } else {
+      // Add transformations only for images
+      uploadOptions.transformation = [
+        { width: 1000, height: 1000, crop: 'limit' },
+        { quality: 'auto' }
+      ];
+    }
+
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'resume-builder',
-          resource_type: 'image',
-          transformation: [
-            { width: 1000, height: 1000, crop: 'limit' },
-            { quality: 'auto' }
-          ]
-        },
+        uploadOptions,
         (error, result) => {
           if (error) {
             console.error('❌ Cloudinary error:', error);
@@ -77,13 +92,52 @@ router.post('/image', authenticate, upload.single('image'), async (req, res) => 
       uploadStream.end(req.file.buffer);
     });
 
+    // For PDFs, return our server URL that will proxy the file
+    let fileUrl = result.secure_url;
+    if (isPDF) {
+      const encodedPublicId = encodeURIComponent(result.public_id);
+      fileUrl = `/api/upload/pdf/${encodedPublicId}`;
+    }
+
     res.json({
       success: true,
-      url: result.secure_url,
-      publicId: result.public_id
+      url: fileUrl,
+      publicId: result.public_id,
+      format: result.format
     });
   } catch (error) {
     console.error('❌ Upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Serve PDF file (proxy to bypass Cloudinary restrictions)
+router.get('/pdf/:publicId', async (req, res) => {
+  try {
+    const { publicId } = req.params;
+    const decodedPublicId = decodeURIComponent(publicId);
+    
+    // Get the PDF from Cloudinary
+    const pdfUrl = cloudinary.url(decodedPublicId, {
+      resource_type: 'raw',
+      secure: true
+    });
+    
+    // Fetch the PDF
+    const response = await fetch(pdfUrl);
+    
+    if (!response.ok) {
+      return res.status(404).json({ error: 'PDF not found' });
+    }
+    
+    const buffer = await response.arrayBuffer();
+    
+    // Set proper headers for PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline');
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('PDF serve error:', error);
     res.status(500).json({ error: error.message });
   }
 });

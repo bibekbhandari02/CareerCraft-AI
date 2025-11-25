@@ -162,28 +162,113 @@ ${resumeData.personalInfo?.fullName || 'Your Name'}`;
   }
 };
 
-export const generatePortfolioContent = async (userData) => {
-  const prompt = `You are a portfolio content writer.
+export const generatePortfolioContent = async (userData, customPrompt = '') => {
+  let prompt = `You are an expert portfolio content writer.
 
-Generate a portfolio website content including:
-- Hero title
-- About me
-- Skills
-- Projects (summaries)
-- Contact section
+Generate professional portfolio content based on the user's information.`;
 
-User Data: ${JSON.stringify(userData)}`;
+  if (customPrompt) {
+    prompt += `\n\nUser's Request: "${customPrompt}"\n\nCurrent Data: ${JSON.stringify(userData)}\n\nGenerate content that fulfills their request while maintaining professional quality.`;
+  } else {
+    prompt += `\n\nUser Data: ${JSON.stringify(userData)}\n\nEnhance and improve their portfolio content.`;
+  }
+
+  prompt += `
+
+Return ONLY a valid JSON object (no markdown, no code blocks) in this EXACT format:
+{
+  "hero": {
+    "title": "Full Name",
+    "subtitle": "Professional Title (e.g., Full Stack Developer, UI/UX Designer)",
+    "description": "Compelling 2-3 sentence introduction highlighting expertise and passion"
+  },
+  "about": "A concise 2 paragraph about section. First paragraph: 2-3 sentences about background and expertise. Second paragraph: 2-3 sentences about passion and what drives them. Keep it professional and impactful.",
+  "skills": [
+    {
+      "category": "Frontend Development",
+      "items": ["React", "Vue.js", "TypeScript", "Tailwind CSS"]
+    },
+    {
+      "category": "Backend Development",
+      "items": ["Node.js", "Express", "MongoDB", "PostgreSQL"]
+    },
+    {
+      "category": "Tools & Others",
+      "items": ["Git", "Docker", "AWS", "CI/CD"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Concise description of the project (2-3 sentences max). Focus on key features and impact.",
+      "technologies": ["React", "Node.js", "MongoDB"],
+      "liveLink": "",
+      "githubLink": ""
+    }
+  ]
+}
+
+Make the content:
+- CONCISE and to the point (no long paragraphs)
+- Professional yet personable
+- Achievement-focused with specific examples
+- Tailored to their field/industry
+- Include 2-3 impressive project ideas if no projects provided`;
 
   try {
-    return await callGeminiAPI(prompt);
+    const result = await callGeminiAPI(prompt);
+    // Clean up the response - remove markdown code blocks if present
+    let cleanedResult = result.trim();
+    if (cleanedResult.startsWith('```json')) {
+      cleanedResult = cleanedResult.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    } else if (cleanedResult.startsWith('```')) {
+      cleanedResult = cleanedResult.replace(/```\n?/g, '');
+    }
+    
+    // Parse to validate JSON
+    const parsed = JSON.parse(cleanedResult);
+    return parsed;
   } catch (error) {
+    console.error('Portfolio generation error:', error);
     if (process.env.NODE_ENV !== 'production') {
-      return JSON.stringify({
-        hero: 'Full Stack Developer',
-        about: 'Passionate developer with expertise in modern web technologies',
-        skills: ['JavaScript', 'React', 'Node.js', 'MongoDB'],
-        projects: ['E-commerce Platform', 'Social Media App', 'Portfolio Website']
-      });
+      return {
+        hero: {
+          title: userData?.content?.hero?.title || 'Your Name',
+          subtitle: 'Full Stack Developer',
+          description: 'Passionate developer with expertise in building modern web applications using cutting-edge technologies.'
+        },
+        about: 'Dedicated software developer specializing in full-stack web development. Experienced in building scalable applications with modern technologies and best practices. Strong foundation in both frontend and backend development.\n\nPassionate about creating elegant solutions to complex problems. Committed to writing clean, maintainable code and staying current with industry trends.',
+        skills: [
+          {
+            category: 'Frontend Development',
+            items: ['React', 'Vue.js', 'TypeScript', 'Tailwind CSS', 'Next.js']
+          },
+          {
+            category: 'Backend Development',
+            items: ['Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'REST APIs']
+          },
+          {
+            category: 'Tools & DevOps',
+            items: ['Git', 'Docker', 'AWS', 'CI/CD', 'Jest']
+          }
+        ],
+        projects: [
+          {
+            name: 'E-Commerce Platform',
+            description: 'Full-featured online shopping platform with authentication, product management, and payment integration. Includes real-time inventory tracking.',
+            technologies: ['React', 'Node.js', 'MongoDB', 'Stripe', 'Redux'],
+            liveLink: '',
+            githubLink: ''
+          },
+          {
+            name: 'Task Management App',
+            description: 'Collaborative task management tool with real-time updates and drag-and-drop interface. Supports team collaboration and customizable workflows.',
+            technologies: ['Vue.js', 'Firebase', 'Vuex', 'Tailwind CSS'],
+            liveLink: '',
+            githubLink: ''
+          }
+        ]
+      };
     }
     throw error;
   }

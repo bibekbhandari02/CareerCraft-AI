@@ -29,8 +29,8 @@ router.post('/cover-letter', authenticate, async (req, res) => {
 // Generate portfolio content
 router.post('/portfolio-content', authenticate, async (req, res) => {
   try {
-    const { userData } = req.body;
-    const content = await generatePortfolioContent(userData);
+    const { userData, customPrompt } = req.body;
+    const content = await generatePortfolioContent(userData, customPrompt);
     res.json({ content });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -45,17 +45,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-6 md:px-8 lg:px-12 py-8 md:py-12 max-w-7xl">
         {/* Welcome */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
             Welcome back, {user?.name}! 👋
           </h1>
-          <p className="text-gray-600">Create professional resumes and portfolios with AI</p>
+          <p className="text-gray-600 text-lg">Create professional resumes and portfolios with AI</p>
         </div>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-white/80">Subscription</h3>
@@ -92,7 +92,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
           <Link to="/resume/new" className="bg-indigo-600 text-white p-8 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-3">
             <Plus className="w-6 h-6" />
             <span className="text-xl font-semibold">Create New Resume</span>
@@ -104,9 +104,9 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Resumes */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Your Resumes</h2>
-          <div className="grid md:grid-cols-3 gap-4">
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Resumes</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {resumes.length === 0 ? (
               <p className="text-gray-500 col-span-3">No resumes yet. Create your first one!</p>
             ) : (
@@ -128,9 +128,9 @@ export default function Dashboard() {
         </section>
 
         {/* Portfolios */}
-        <section>
-          <h2 className="text-2xl font-bold mb-4">Your Portfolios</h2>
-          <div className="grid md:grid-cols-3 gap-4">
+        <section className="mb-8">
+          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Portfolios</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {portfolios.length === 0 ? (
               <p className="text-gray-500 col-span-3">No portfolios yet. Create your first one!</p>
             ) : (
