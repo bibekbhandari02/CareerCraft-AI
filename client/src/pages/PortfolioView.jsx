@@ -347,6 +347,8 @@ export default function PortfolioView() {
                   <img
                     src={portfolio.profileImageUrl}
                     alt={content.hero?.title}
+                    loading="eager"
+                    decoding="async"
                     className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-full border-4 border-[#1f1f1f] shadow-2xl"
                   />
                 </div>
@@ -624,11 +626,13 @@ export default function PortfolioView() {
                   }}
                   className="rounded-xl overflow-hidden shadow-lg flex flex-col bg-[#181818] transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-gray-800/50 cursor-pointer"
                 >
-                  <div className="h-56 w-full relative group overflow-hidden">
+                  <div className="h-56 w-full relative group overflow-hidden bg-[#2a2a2a]">
                     {project.image ? (
                       <img
                         src={project.image}
                         alt={project.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
                     ) : (
@@ -898,10 +902,12 @@ export default function PortfolioView() {
                 </div>
 
                 {selectedProject.image && (
-                  <div className="mb-6 rounded-lg overflow-hidden">
+                  <div className="mb-6 rounded-lg overflow-hidden bg-[#2a2a2a]">
                     <img
                       src={selectedProject.image}
                       alt={selectedProject.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-64 object-cover"
                     />
                   </div>
