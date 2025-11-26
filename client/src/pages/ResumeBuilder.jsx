@@ -325,16 +325,16 @@ export default function ResumeBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="w-6 h-6" />
+                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold">Resume Builder</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold">Resume Builder</h1>
                 {selectedTemplate && (
                   <p className="text-sm text-gray-600 mt-1">
                     Template: <span className="font-semibold text-indigo-600 capitalize">{selectedTemplate}</span>
@@ -342,22 +342,24 @@ export default function ResumeBuilder() {
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setShowPreview(true)}
-                className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+                className="flex items-center gap-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 text-sm sm:text-base"
               >
                 <Eye className="w-4 h-4" />
-                Preview
+                <span className="hidden sm:inline">Preview</span>
+                <span className="sm:hidden">View</span>
               </button>
               <button
                 onClick={enhanceWithAI}
                 disabled={enhancing}
-                className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                className="flex items-center gap-2 bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm sm:text-base"
               >
                 <Sparkles className="w-4 h-4" />
-                {enhancing ? 'Enhancing...' : 'Enhance with AI'}
+                <span className="hidden sm:inline">{enhancing ? 'Enhancing...' : 'Enhance with AI'}</span>
+                <span className="sm:hidden">AI</span>
               </button>
               {aiSuggestions && (
                 <button
@@ -441,30 +443,58 @@ export default function ResumeBuilder() {
 
           {/* Preview Modal */}
           {showPreview && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
-                <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-                  <h2 className="text-xl font-bold">Resume Preview</h2>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+              <style>{`
+                @media (max-width: 640px) {
+                  .resume-preview-scale { transform: scale(0.35); }
+                }
+                @media (min-width: 641px) and (max-width: 1024px) {
+                  .resume-preview-scale { transform: scale(0.55); }
+                }
+                @media (min-width: 1025px) and (max-width: 1536px) {
+                  .resume-preview-scale { transform: scale(0.75); }
+                }
+                @media (min-width: 1537px) and (max-width: 1920px) {
+                  .resume-preview-scale { transform: scale(0.9); }
+                }
+                @media (min-width: 1921px) {
+                  .resume-preview-scale { transform: scale(1.0); }
+                }
+              `}</style>
+              <div className="bg-white rounded-lg w-full max-w-[95vw] lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] max-h-[95vh] overflow-hidden flex flex-col">
+                <div className="bg-white border-b p-3 sm:p-4 flex justify-between items-center flex-shrink-0">
+                  <h2 className="text-lg sm:text-xl font-bold">Resume Preview</h2>
                   <button
                     onClick={() => setShowPreview(false)}
                     className="text-gray-600 hover:text-gray-900"
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
                 </div>
-                <div className="p-8">
-                  <ResumePreview resumeData={watch()} template={selectedTemplate} />
+                <div className="flex-1 overflow-auto bg-gray-100 p-2 sm:p-4 lg:p-6">
+                  <div className="mx-auto flex justify-center items-start min-h-full">
+                    <div 
+                      className="bg-white shadow-2xl resume-preview-scale" 
+                      style={{ 
+                        width: '210mm',
+                        minHeight: '297mm',
+                        transformOrigin: 'top center',
+                      }}
+                    >
+                      <ResumePreview resumeData={watch()} template={selectedTemplate} />
+                    </div>
+                  </div>
                 </div>
-                <div className="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-2">
+                <div className="bg-white border-t p-3 sm:p-4 flex flex-col sm:flex-row justify-end gap-2 flex-shrink-0">
                   <button
                     onClick={() => setShowPreview(false)}
-                    className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    className="w-full sm:w-auto px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
                   >
                     Close
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm sm:text-base"
                   >
                     <Download className="w-4 h-4" />
                     Download PDF

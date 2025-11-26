@@ -7,7 +7,6 @@ import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const { user, updateUser } = useAuthStore();
-  const navigate = useNavigate();
   const [resumes, setResumes] = useState([]);
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,70 +86,70 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-6 md:px-8 lg:px-12 py-8 md:py-12 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 max-w-7xl">
         {/* Welcome */}
-        <div className="mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+        <div className="mb-6 sm:mb-8 lg:mb-10">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 sm:mb-3">
             Welcome back, {user?.name}! 👋
           </h1>
-          <p className="text-gray-600 text-lg">Create professional resumes and portfolios with AI</p>
+          <p className="text-gray-600 text-sm sm:text-base lg:text-lg">Create professional resumes and portfolios with AI</p>
         </div>
 
         {/* Stats */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-white/80">Subscription</h3>
-              <CreditCard className="w-5 h-5" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 lg:mb-10">
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-4 sm:p-5 lg:p-6 rounded-lg shadow-lg">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h3 className="text-white/80 text-xs sm:text-sm">Subscription</h3>
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <p className="text-3xl font-bold capitalize">{user?.subscription}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold capitalize">{user?.subscription}</p>
             {user?.subscription === 'free' && (
-              <Link to="/pricing" className="text-sm text-white/80 hover:text-white mt-2 inline-block">
+              <Link to="/pricing" className="text-xs sm:text-sm text-white/80 hover:text-white mt-1 sm:mt-2 inline-block">
                 Upgrade →
               </Link>
             )}
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600">Resume Credits</h3>
-              <Sparkles className="w-5 h-5 text-indigo-600" />
+          <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h3 className="text-gray-600 text-xs sm:text-sm">Resume Credits</h3>
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{user?.credits?.resumeGenerations || 0}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{user?.credits?.resumeGenerations || 0}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600">Portfolio Credits</h3>
-              <Globe className="w-5 h-5 text-purple-600" />
+          <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h3 className="text-gray-600 text-xs sm:text-sm">Portfolio Credits</h3>
+              <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{user?.credits?.portfolios || 0}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{user?.credits?.portfolios || 0}</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600">Total Resumes</h3>
-              <FileText className="w-5 h-5 text-green-600" />
+          <div className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow">
+            <div className="flex items-center justify-between mb-1 sm:mb-2">
+              <h3 className="text-gray-600 text-xs sm:text-sm">Total Resumes</h3>
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900">{resumes.length}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">{resumes.length}</p>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-2 gap-6 mb-12">
-          <Link to="/resume/new" className="bg-indigo-600 text-white p-8 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-3">
-            <Plus className="w-6 h-6" />
-            <span className="text-xl font-semibold">Create New Resume</span>
+        <div className="grid sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 mb-8 sm:mb-10 lg:mb-12">
+          <Link to="/resume/new" className="bg-indigo-600 text-white p-5 sm:p-6 lg:p-8 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 sm:gap-3 transition-colors">
+            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-base sm:text-lg lg:text-xl font-semibold">Create New Resume</span>
           </Link>
-          <Link to="/portfolio/new" className="bg-purple-600 text-white p-8 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-3">
-            <Plus className="w-6 h-6" />
-            <span className="text-xl font-semibold">Create Portfolio</span>
+          <Link to="/portfolio/new" className="bg-purple-600 text-white p-5 sm:p-6 lg:p-8 rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2 sm:gap-3 transition-colors">
+            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="text-base sm:text-lg lg:text-xl font-semibold">Create Portfolio</span>
           </Link>
         </div>
 
         {/* Recent Resumes */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Resumes</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="mb-8 sm:mb-10 lg:mb-12">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">Your Resumes</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {resumes.length === 0 ? (
-              <p className="text-gray-500 col-span-3">No resumes yet. Create your first one!</p>
+              <p className="text-gray-500 col-span-full text-sm sm:text-base">No resumes yet. Create your first one!</p>
             ) : (
               resumes.map((resume) => {
                 const resumeName = resume.personalInfo?.fullName 
@@ -161,25 +160,25 @@ export default function Dashboard() {
                   <div key={resume._id} className="relative group">
                     <Link
                       to={`/resume/${resume._id}`}
-                      className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition block"
+                      className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition block"
                     >
-                      <FileText className="w-8 h-8 text-indigo-600 mb-2" />
-                      <h3 className="font-semibold">{resumeName}</h3>
-                      <p className="text-sm text-gray-500">
+                      <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-indigo-600 mb-2" />
+                      <h3 className="font-semibold text-sm sm:text-base truncate">{resumeName}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">
                         Updated {new Date(resume.updatedAt).toLocaleDateString()}
                       </p>
                       {resume.template && (
-                        <p className="text-xs text-indigo-600 mt-1 capitalize">
+                        <p className="text-[10px] sm:text-xs text-indigo-600 mt-1 capitalize">
                           {resume.template === 'classic' ? 'ATS-Friendly' : resume.template} Template
                         </p>
                       )}
                     </Link>
                     <button
                       onClick={(e) => handleDeleteResume(e, resume._id, resumeName)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1.5 sm:p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                       title="Delete resume"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 );
@@ -189,11 +188,11 @@ export default function Dashboard() {
         </section>
 
         {/* Portfolios */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-gray-900">Your Portfolios</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">Your Portfolios</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
             {portfolios.length === 0 ? (
-              <p className="text-gray-500 col-span-3">No portfolios yet. Create your first one!</p>
+              <p className="text-gray-500 col-span-full text-sm sm:text-base">No portfolios yet. Create your first one!</p>
             ) : (
               portfolios.map((portfolio) => {
                 const portfolioName = portfolio.subdomain || 'Untitled';
@@ -202,18 +201,18 @@ export default function Dashboard() {
                   <div key={portfolio._id} className="relative group">
                     <Link
                       to={`/portfolio/${portfolio._id}`}
-                      className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition block"
+                      className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition block"
                     >
-                      <Globe className="w-8 h-8 text-purple-600 mb-2" />
-                      <h3 className="font-semibold">{portfolioName}</h3>
-                      <p className="text-sm text-gray-500">{portfolio.views} views</p>
+                      <Globe className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600 mb-2" />
+                      <h3 className="font-semibold text-sm sm:text-base truncate">{portfolioName}</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">{portfolio.views} views</p>
                     </Link>
                     <button
                       onClick={(e) => handleDeletePortfolio(e, portfolio._id, portfolioName)}
-                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1.5 sm:p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                       title="Delete portfolio"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 );

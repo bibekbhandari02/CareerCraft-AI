@@ -77,6 +77,15 @@ export default function PortfolioView() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Set default filter based on screen size: 'recent' for mobile, 'all' for desktop
+  const [projectFilter, setProjectFilter] = useState(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'recent' : 'all'
+  );
+
+  // Get unique tags from projects
+  const projectTags = portfolio?.content?.projects 
+    ? ['all', 'recent', ...new Set(portfolio.content.projects.map(p => p.tag).filter(Boolean))]
+    : ['all', 'recent'];
 
   // Get theme colors
   const themeColors = portfolio ? getThemeColors(portfolio.colorTheme) : getThemeColors('purple-pink');
@@ -202,6 +211,18 @@ export default function PortfolioView() {
             .join('\n          ')}
         }
         
+        /* Hide scrollbar completely */
+        html, body {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+        }
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+          width: 0;
+          height: 0;
+        }
+        
         /* Theme-aware styles */
         .theme-gradient {
           background-image: linear-gradient(to right, var(--theme-primary), var(--theme-secondary));
@@ -235,8 +256,13 @@ export default function PortfolioView() {
 
       {/* Scroll Progress Bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 origin-left z-50 theme-gradient"
-        style={{ scaleX, height: '2px' }}
+        className="fixed top-0 left-0 right-0 origin-left z-50"
+        style={{ 
+          scaleX, 
+          height: '2px',
+          backgroundColor: 'var(--theme-primary)',
+          boxShadow: 'none'
+        }}
       />
 
       {/* Navbar */}
@@ -253,9 +279,59 @@ export default function PortfolioView() {
                 className="h-10 md:h-12 w-auto object-contain"
               />
             ) : (
-              <div className="text-2xl font-bold text-white">
-                {content.hero?.title?.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2) || 'Logo'}
-              </div>
+              (() => {
+                const logoText = portfolio.logoText || content.hero?.title?.split(' ')[0] || 'Logo';
+                const firstLetter = logoText[0]?.toUpperCase() || 'L';
+                const restOfWord = logoText.slice(1)?.toLowerCase() || 'ogo';
+                
+                return (
+                  <svg 
+                    width="140" 
+                    height="48" 
+                    viewBox="0 0 140 48" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-10 md:h-12 w-auto"
+                  >
+                    <defs>
+                      <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style={{ stopColor: 'var(--theme-primary)', stopOpacity: 1 }} />
+                        <stop offset="100%" style={{ stopColor: 'var(--theme-secondary)', stopOpacity: 1 }} />
+                      </linearGradient>
+                      <filter id="glow">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <text 
+                      x="5" 
+                      y="32" 
+                      fontSize="32" 
+                      fontWeight="800" 
+                      fill="url(#logoGradient)"
+                      fontFamily="system-ui, -apple-system, sans-serif"
+                      filter="url(#glow)"
+                      letterSpacing="-1"
+                    >
+                      {firstLetter}
+                    </text>
+                    <text 
+                      x="30" 
+                      y="32" 
+                      fontSize="24" 
+                      fontWeight="600" 
+                      fill="white" 
+                      fontFamily="system-ui, -apple-system, sans-serif"
+                      letterSpacing="0.5"
+                    >
+                      {restOfWord}
+                    </text>
+                  </svg>
+                );
+              })()
             )}
           </button>
 
@@ -640,11 +716,44 @@ export default function PortfolioView() {
         <section id="projects" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
           <div className="container mx-auto max-w-7xl">
             <div className="text-left md:text-center mb-8 md:mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-white">My Projects</h2>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">My Projects</h2>
+              
+              {/* Filter Tags */}
+              <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap px-4">
+                {projectTags.map((tag) => {
+                  const tagLabels = {
+                    'all': 'All',
+                    'recent': 'Recent',
+                    'ai': 'AI',
+                    'fullstack': 'Full Stack',
+                    'frontend': 'Frontend',
+                    'web': 'Web'
+                  };
+                  
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => setProjectFilter(tag)}
+                      className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
+                        projectFilter === tag
+                          ? 'text-white theme-gradient shadow-lg'
+                          : 'text-gray-400 bg-[#1f1f1f] hover:bg-[#2a2a2a] hover:text-gray-300'
+                      }`}
+                    >
+                      {tagLabels[tag] || tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {content.projects.map((project, index) => (
+              {(projectFilter === 'all'
+                ? content.projects
+                : projectFilter === 'recent'
+                ? content.projects.slice(0, 3)
+                : content.projects.filter(p => p.tag === projectFilter)
+              ).map((project, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
@@ -699,7 +808,17 @@ export default function PortfolioView() {
                   </div>
 
                   <div className="text-white py-6 px-4 flex flex-col gap-3">
-                    <h5 className="text-xl font-semibold">{project.name}</h5>
+                    <div className="flex items-start justify-between gap-2">
+                      <h5 className="text-xl font-semibold flex-1">{project.name}</h5>
+                      {project.tag && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full theme-gradient flex-shrink-0">
+                          {project.tag === 'ai' ? 'AI' : 
+                           project.tag === 'fullstack' ? 'Full Stack' : 
+                           project.tag === 'frontend' ? 'Frontend' : 
+                           project.tag === 'web' ? 'Web' : project.tag}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[#ADB7BE] line-clamp-2">{project.description}</p>
                     
                     {project.technologies && (

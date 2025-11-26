@@ -2,18 +2,23 @@ import { Mail, Github, Linkedin } from 'lucide-react';
 import { getThemeColors, applyThemeVariables } from '../utils/portfolioThemes';
 
 export default function PortfolioPreview({ data }) {
-  const { content, profileImageUrl, logoUrl, colorTheme } = data;
+  const { content, profileImageUrl, logoUrl, logoText, colorTheme } = data;
   const themeColors = getThemeColors(colorTheme || 'purple-pink');
 
   if (!content) return null;
+  
+  const displayLogoText = logoText || content.hero?.title?.split(' ')[0] || 'Logo';
+  const firstLetter = displayLogoText[0]?.toUpperCase() || 'L';
+  const restOfWord = displayLogoText.slice(1)?.toLowerCase() || 'ogo';
 
   return (
     <div 
-      className="border rounded-lg overflow-hidden shadow-2xl max-h-[600px] overflow-y-auto relative"
+      className="border rounded-lg overflow-hidden shadow-2xl w-full max-w-md mx-auto lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl overflow-y-auto relative"
       style={{
         ...applyThemeVariables(colorTheme || 'purple-pink'),
         backgroundColor: 'var(--theme-background)',
-        borderColor: 'var(--theme-border)'
+        borderColor: 'var(--theme-border)',
+        maxHeight: '600px'
       }}
     >
       {/* Background Orbs */}
@@ -31,7 +36,51 @@ export default function PortfolioPreview({ data }) {
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" className="h-6 w-auto" />
           ) : (
-            content.hero?.title?.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2) || 'Logo'
+            <svg 
+              width="90" 
+              height="32" 
+              viewBox="0 0 90 32" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-auto"
+            >
+              <defs>
+                <linearGradient id="previewLogoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style={{ stopColor: 'var(--theme-primary)', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: 'var(--theme-secondary)', stopOpacity: 1 }} />
+                </linearGradient>
+                <filter id="previewGlow">
+                  <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              <text 
+                x="3" 
+                y="22" 
+                fontSize="22" 
+                fontWeight="800" 
+                fill="url(#previewLogoGradient)"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                filter="url(#previewGlow)"
+                letterSpacing="-0.5"
+              >
+                {firstLetter}
+              </text>
+              <text 
+                x="20" 
+                y="22" 
+                fontSize="16" 
+                fontWeight="600" 
+                fill="white" 
+                fontFamily="system-ui, -apple-system, sans-serif"
+                letterSpacing="0.3"
+              >
+                {restOfWord}
+              </text>
+            </svg>
           )}
         </div>
         <div className="flex items-center gap-2">

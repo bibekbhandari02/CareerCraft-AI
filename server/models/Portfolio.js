@@ -42,7 +42,8 @@ const portfolioSchema = new mongoose.Schema({
       image: String,
       technologies: [String],
       liveLink: String,
-      githubLink: String
+      githubLink: String,
+      tag: String
     }],
     contact: {
       email: String,
@@ -61,6 +62,10 @@ const portfolioSchema = new mongoose.Schema({
     default: ''
   },
   logoUrl: {
+    type: String,
+    default: ''
+  },
+  logoText: {
     type: String,
     default: ''
   },
