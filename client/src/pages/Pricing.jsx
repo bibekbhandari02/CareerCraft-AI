@@ -147,17 +147,7 @@ export default function Pricing() {
           ))}
         </div>
 
-        <div className="text-center mt-12">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
-            <p className="text-sm text-blue-800 mb-2">
-              <strong>Test Mode:</strong> Using eSewa test credentials (EPAYTEST). 
-              All payments will use test amount of <strong>NPR 100</strong>.
-            </p>
-            <p className="text-xs text-blue-700">
-              Test Credentials: ID: <strong>9806800001</strong> | Password: <strong>1122</strong> | Token: <strong>123456</strong>
-            </p>
-          </div>
-        </div>
+
       </div>
     </div>
   );
