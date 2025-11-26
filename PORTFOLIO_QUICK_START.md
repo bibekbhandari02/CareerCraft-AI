@@ -10,7 +10,7 @@
 
 2. **Set Your Subdomain**
    - Enter a unique subdomain (e.g., `john-doe`)
-   - This will be your portfolio URL: `john-doe.resumeai.com`
+   - This will be your portfolio URL: `john-doe.careercraftai.com`
 
 3. **Generate Content with AI** (Optional)
    - Click "AI Generate" button

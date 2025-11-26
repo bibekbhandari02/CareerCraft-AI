@@ -1,23 +1,32 @@
 import { Mail, Github, Linkedin } from 'lucide-react';
+import { getThemeColors, applyThemeVariables } from '../utils/portfolioThemes';
 
 export default function PortfolioPreview({ data }) {
-  const { content, profileImageUrl, logoUrl } = data;
+  const { content, profileImageUrl, logoUrl, colorTheme } = data;
+  const themeColors = getThemeColors(colorTheme || 'purple-pink');
 
   if (!content) return null;
 
   return (
-    <div className="border border-gray-700 rounded-lg overflow-hidden bg-[#0F0F0F] shadow-2xl max-h-[600px] overflow-y-auto relative">
+    <div 
+      className="border rounded-lg overflow-hidden shadow-2xl max-h-[600px] overflow-y-auto relative"
+      style={{
+        ...applyThemeVariables(colorTheme || 'purple-pink'),
+        backgroundColor: 'var(--theme-background)',
+        borderColor: 'var(--theme-border)'
+      }}
+    >
       {/* Background Orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/4 left-0 w-40 h-40 bg-pink-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 right-1/4 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-40 h-40 bg-pink-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute top-1/4 left-0 w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute top-1/2 right-1/4 w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute bottom-1/4 left-1/4 w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute bottom-0 right-0 w-40 h-40 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
       </div>
 
       {/* Mini Navbar */}
-      <div className="bg-[#0F0F0F]/95 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center justify-between relative z-10">
+      <div className="backdrop-blur-sm px-4 py-3 flex items-center justify-between relative z-10" style={{ backgroundColor: 'var(--theme-background)F2', borderBottom: '1px solid var(--theme-border)' }}>
         <div className="text-white text-sm font-bold">
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" className="h-6 w-auto" />
@@ -81,8 +90,7 @@ export default function PortfolioPreview({ data }) {
       {/* About Section */}
       {content.about && (
         <div className="px-6 py-4 border-t border-gray-800 relative z-10">
-          <h2 className="text-sm font-bold mb-2 text-white text-center">About Me</h2>
-          <div className="w-8 h-0.5 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+          <h2 className="text-sm font-bold mb-3 text-white text-center">About Me</h2>
           <p className="text-xs text-[#ADB7BE] leading-relaxed line-clamp-3 text-justify">
             {content.about}
           </p>
@@ -92,8 +100,7 @@ export default function PortfolioPreview({ data }) {
       {/* Skills Section */}
       {content.skills && content.skills.length > 0 && (
         <div className="px-6 py-4 border-t border-gray-800 relative z-10">
-          <h2 className="text-sm font-bold mb-2 text-white text-center">Skills & Tools</h2>
-          <div className="w-8 h-0.5 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+          <h2 className="text-sm font-bold mb-3 text-white text-center">Skills & Tools</h2>
           <div className="space-y-2">
             {content.skills.slice(0, 2).map((skillGroup, index) => {
               let skillItems = [];
@@ -126,8 +133,7 @@ export default function PortfolioPreview({ data }) {
       {/* Projects Section */}
       {content.projects && content.projects.length > 0 && (
         <div className="px-6 py-4 border-t border-gray-800 relative z-10">
-          <h2 className="text-sm font-bold mb-2 text-white text-center">My Projects</h2>
-          <div className="w-8 h-0.5 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+          <h2 className="text-sm font-bold mb-3 text-white text-center">My Projects</h2>
           <div className="space-y-2">
             {content.projects.slice(0, 2).map((project, index) => (
               <div key={index} className="bg-[#181818] rounded-lg border border-gray-800 overflow-hidden">
@@ -150,8 +156,7 @@ export default function PortfolioPreview({ data }) {
 
       {/* Contact Section */}
       <div className="px-6 py-4 border-t border-gray-800 bg-[#0F0F0F] relative z-10">
-        <h2 className="text-sm font-bold mb-2 text-white text-center">Get in touch</h2>
-        <div className="w-8 h-0.5 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+        <h2 className="text-sm font-bold mb-3 text-white text-center">Get in touch</h2>
         
         <div className="space-y-2 mb-3">
           {content.contact?.email && (

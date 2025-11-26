@@ -16,6 +16,10 @@ const portfolioSchema = new mongoose.Schema({
     type: String,
     default: 'modern'
   },
+  colorTheme: {
+    type: String,
+    default: 'purple-pink'
+  },
   colors: {
     primary: { type: String, default: '#3b82f6' },
     secondary: { type: String, default: '#1e293b' },

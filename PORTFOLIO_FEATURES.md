@@ -34,7 +34,7 @@ The Portfolio Builder allows users to create professional, customizable portfoli
 - Preview uploaded images
 
 ### 5. Public Portfolio Viewing
-- Each portfolio gets a unique subdomain (e.g., john-doe.resumeai.com)
+- Each portfolio gets a unique subdomain (e.g., john-doe.careercraftai.com)
 - Beautiful, responsive public view
 - View counter tracking
 - No navbar for clean presentation

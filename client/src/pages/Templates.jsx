@@ -1,12 +1,16 @@
-﻿import { useState } from 'react';
+﻿import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles, FileText, Globe } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 export default function Templates() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [templateType, setTemplateType] = useState('resume'); // 'resume' or 'portfolio'
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const resumeTemplates = [
     {
@@ -83,69 +87,7 @@ export default function Templates() {
     }
   ];
 
-  const portfolioTemplates = [
-    {
-      id: 'modern-dark',
-      name: 'Modern Dark',
-      description: 'Sleek dark theme with purple-pink gradients and smooth animations',
-      features: ['Dark Theme', 'Gradient Accents', 'Smooth Animations', 'Mobile Menu'],
-      popular: true,
-      available: true,
-      icon: '🌙'
-    },
-    {
-      id: 'minimal-light',
-      name: 'Minimal Light',
-      description: 'Clean and minimal design with focus on content',
-      features: ['Light Theme', 'Minimalist', 'Fast Loading', 'Typography Focus'],
-      popular: false,
-      available: false,
-      comingSoon: true,
-      icon: '☀️'
-    },
-    {
-      id: 'creative-bold',
-      name: 'Creative Bold',
-      description: 'Bold colors and creative layouts for designers',
-      features: ['Colorful', 'Creative Layout', 'Portfolio Grid', 'Animations'],
-      popular: false,
-      available: false,
-      comingSoon: true,
-      icon: '🎨'
-    },
-    {
-      id: 'professional-blue',
-      name: 'Professional Blue',
-      description: 'Corporate-friendly design with blue accents',
-      features: ['Blue Theme', 'Professional', 'Clean Layout', 'Business Ready'],
-      popular: false,
-      available: false,
-      comingSoon: true,
-      icon: '💼'
-    },
-    {
-      id: 'developer-terminal',
-      name: 'Developer Terminal',
-      description: 'Terminal-inspired design for developers',
-      features: ['Terminal Style', 'Code Blocks', 'Monospace Fonts', 'Tech Focus'],
-      popular: false,
-      available: false,
-      comingSoon: true,
-      icon: '💻'
-    },
-    {
-      id: 'elegant-gradient',
-      name: 'Elegant Gradient',
-      description: 'Sophisticated gradients and elegant typography',
-      features: ['Gradient Backgrounds', 'Elegant', 'Modern', 'Sophisticated'],
-      popular: false,
-      available: false,
-      comingSoon: true,
-      icon: '✨'
-    }
-  ];
 
-  const templates = templateType === 'resume' ? resumeTemplates : portfolioTemplates;
 
   const handleUseTemplate = (templateId) => {
     if (!user) {
@@ -153,16 +95,8 @@ export default function Templates() {
       return;
     }
 
-    if (templateType === 'resume') {
-      // All resume templates are now available
-      navigate(`/resume/new?template=${templateId}`);
-    } else {
-      if (templateId === 'modern-dark') {
-        navigate('/portfolio/new');
-      } else {
-        alert('This template is coming soon! Stay tuned for updates.');
-      }
-    }
+    // All resume templates are now available
+    navigate(`/resume/new?template=${templateId}`);
   };
 
   return (
@@ -177,40 +111,14 @@ export default function Templates() {
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Choose Your Perfect Template
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-            Select from our professionally designed templates
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Select from our professionally designed resume templates
           </p>
-
-          {/* Template Type Tabs */}
-          <div className="inline-flex bg-white rounded-lg shadow-md p-1 gap-1">
-            <button
-              onClick={() => setTemplateType('resume')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                templateType === 'resume'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="w-5 h-5" />
-              Resume Templates
-            </button>
-            <button
-              onClick={() => setTemplateType('portfolio')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                templateType === 'portfolio'
-                ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                >
-              <Globe className="w-5 h-5" />
-              Portfolio Templates
-            </button>
-          </div>
         </div>
 
         {/* Templates Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {templates.map((template) => (
+          {resumeTemplates.map((template) => (
             <div
               key={template.id}
               className={`bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl ${
@@ -236,7 +144,7 @@ export default function Templates() {
                 )}
                 
                 {/* Resume Skeleton Preview */}
-                {templateType === 'resume' && (
+                {(
                   <div className="h-full w-full flex items-center justify-center bg-gray-100 overflow-hidden">
                     <div className="bg-white shadow-sm" style={{ width: '180px', height: '254px', overflow: 'hidden' }}>
                       <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '360px', height: '508px', padding: '24px' }}>
@@ -776,43 +684,6 @@ export default function Templates() {
                       </div>
                     )}
                     </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Portfolio Skeleton Preview */}
-                {templateType === 'portfolio' && (
-                  <div className="p-4 bg-gray-900 h-full">
-                    {/* Mini navbar */}
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-700">
-                      <div className="h-2 bg-gray-600 w-12 rounded"></div>
-                      <div className="flex gap-2">
-                        <div className="h-2 bg-gray-600 w-8 rounded"></div>
-                        <div className="h-2 bg-gray-600 w-8 rounded"></div>
-                        <div className="h-2 bg-gray-600 w-8 rounded"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Hero */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full"></div>
-                      <div>
-                        <div className="h-3 bg-gray-600 w-24 mb-1 rounded"></div>
-                        <div className="h-2 bg-gray-700 w-32 rounded"></div>
-                      </div>
-                    </div>
-                    
-                    {/* Content sections */}
-                    <div className="space-y-2">
-                      <div className="h-2 bg-gray-700 w-full rounded"></div>
-                      <div className="h-2 bg-gray-700 w-full rounded"></div>
-                      <div className="h-2 bg-gray-700 w-3/4 rounded"></div>
-                    </div>
-                    
-                    {/* Projects grid */}
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <div className="h-16 bg-gray-800 rounded"></div>
-                      <div className="h-16 bg-gray-800 rounded"></div>
                     </div>
                   </div>
                 )}

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
@@ -7,6 +8,11 @@ import toast from 'react-hot-toast';
 export default function Pricing() {
   const navigate = useNavigate();
   const { token } = useAuthStore();
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleSubscribe = async (plan) => {
     if (!token) {

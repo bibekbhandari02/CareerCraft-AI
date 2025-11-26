@@ -19,6 +19,7 @@ export default function PortfolioBuilder() {
     defaultValues: {
       subdomain: '',
       theme: 'modern',
+      colorTheme: 'purple-pink',
       colors: {
         primary: '#3b82f6',
         secondary: '#1e293b',
@@ -428,33 +429,62 @@ export default function PortfolioBuilder() {
               </section>
             </div>
 
-            {/* Subdomain & Theme */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <section>
-                <h2 className="text-xl font-semibold mb-4">Portfolio URL</h2>
-                <div className="flex items-center gap-2">
-                  <input
-                    {...register('subdomain', { required: true })}
-                    placeholder="your-name"
-                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <span className="text-gray-600">.resumeai.com</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-2">Choose a unique subdomain for your portfolio</p>
-              </section>
+            {/* Portfolio URL */}
+            <section>
+              <h2 className="text-xl font-semibold mb-4">Portfolio URL</h2>
+              <div className="flex items-center gap-2">
+                <input
+                  {...register('subdomain', { required: true })}
+                  placeholder="your-name"
+                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+                <span className="text-gray-600">.careercraftai.com</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-2">Choose a unique subdomain for your portfolio</p>
+            </section>
 
-              <section>
-                <h2 className="text-xl font-semibold mb-4">Theme</h2>
-                <select
-                  {...register('theme')}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="modern">Modern</option>
-                  <option value="minimal">Minimal</option>
-                  <option value="creative">Creative</option>
-                </select>
-              </section>
-            </div>
+            {/* Color Theme */}
+            <section className="border-t pt-6">
+              <h2 className="text-xl font-semibold mb-4">Color Theme</h2>
+              <p className="text-sm text-gray-600 mb-4">Choose a color scheme for your portfolio</p>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { name: 'Purple & Pink', from: '#a855f7', to: '#ec4899', value: 'purple-pink' },
+                  { name: 'Ocean Blue', from: '#3b82f6', to: '#06b6d4', value: 'blue-cyan' },
+                  { name: 'Forest Green', from: '#22c55e', to: '#14b8a6', value: 'green-teal' },
+                  { name: 'Sunset Fire', from: '#f97316', to: '#ef4444', value: 'orange-red' },
+                  { name: 'Royal Indigo', from: '#6366f1', to: '#a855f7', value: 'indigo-purple' },
+                  { name: 'Rose Garden', from: '#ec4899', to: '#f43f5e', value: 'pink-rose' },
+                  { name: 'Golden Sun', from: '#eab308', to: '#f97316', value: 'yellow-orange' },
+                  { name: 'Emerald Forest', from: '#10b981', to: '#22c55e', value: 'emerald-green' },
+                ].map((theme) => (
+                  <button
+                    key={theme.value}
+                    type="button"
+                    onClick={() => setValue('colorTheme', theme.value)}
+                    className={`relative p-4 rounded-lg border-2 transition-all ${
+                      watch('colorTheme') === theme.value
+                        ? 'border-indigo-600 ring-2 ring-indigo-200'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div 
+                      className="h-12 rounded-md mb-2"
+                      style={{ backgroundImage: `linear-gradient(to right, ${theme.from}, ${theme.to})` }}
+                    ></div>
+                    <p className="text-xs font-medium text-center">{theme.name}</p>
+                    {watch('colorTheme') === theme.value && (
+                      <div className="absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </section>
 
             {/* Hero Section */}
             <section className="border-t pt-6">

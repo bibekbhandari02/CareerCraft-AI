@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Mail, Phone, Linkedin, Github, ExternalLink, Eye, Code2, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import api from '../lib/api';
+import { getThemeColors, applyThemeVariables } from '../utils/portfolioThemes';
 import {
   FaHtml5,
   FaCss3Alt,
@@ -76,6 +77,9 @@ export default function PortfolioView() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Get theme colors
+  const themeColors = portfolio ? getThemeColors(portfolio.colorTheme) : getThemeColors('purple-pink');
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -189,24 +193,54 @@ export default function PortfolioView() {
   const navLinks = ['home', 'about', 'skills', 'projects', 'contact'];
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white relative overflow-hidden">
+    <>
+      {/* Apply theme CSS variables globally */}
+      <style>{`
+        :root {
+          ${Object.entries(applyThemeVariables(portfolio.colorTheme))
+            .map(([key, value]) => `${key}: ${value};`)
+            .join('\n          ')}
+        }
+        
+        /* Theme-aware styles */
+        .theme-gradient {
+          background-image: linear-gradient(to right, var(--theme-primary), var(--theme-secondary));
+        }
+        .theme-gradient-hover:hover {
+          background-image: linear-gradient(to right, var(--theme-primary-hover), var(--theme-secondary-hover));
+        }
+        .theme-bg { background-color: var(--theme-background); }
+        .theme-surface { background-color: var(--theme-surface); }
+        .theme-border { border-color: var(--theme-border); }
+        .theme-text { color: var(--theme-text); }
+        .theme-text-secondary { color: var(--theme-text-secondary); }
+        .theme-skill-badge {
+          background-color: var(--theme-skill-bg);
+          border: 1px solid var(--theme-skill-border);
+          color: var(--theme-accent);
+        }
+      `}</style>
+      
+      <div 
+        className="min-h-screen text-white relative overflow-hidden theme-bg"
+      >
       {/* Global Glowing Background Orbs - Stable (no pulse) */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/4 left-0 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute top-1/4 left-0 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute top-1/2 right-1/4 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
       </div>
 
       {/* Scroll Progress Bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-400 to-gray-600 origin-left z-50"
-        style={{ scaleX }}
+        className="fixed top-0 left-0 right-0 origin-left z-50 theme-gradient"
+        style={{ scaleX, height: '2px' }}
       />
 
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 bg-[#0F0F0F]/95 backdrop-blur-sm z-[100] border-b border-gray-800">
+      <nav className="fixed top-0 left-0 right-0 backdrop-blur-sm z-[100]" style={{ backgroundColor: 'var(--theme-background)E6', borderBottom: '1px solid var(--theme-border)' }}>
         <div className="container mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
           <button
             onClick={() => scrollToSection('home')}
@@ -343,7 +377,7 @@ export default function PortfolioView() {
                 className="md:col-span-4 flex justify-center md:justify-end order-first md:order-last"
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-xl opacity-20"></div>
+                  <div className="absolute inset-0 rounded-full blur-xl opacity-20 theme-gradient"></div>
                   <img
                     src={portfolio.profileImageUrl}
                     alt={content.hero?.title}
@@ -372,7 +406,7 @@ export default function PortfolioView() {
                 </span>
               </h1>
               
-              <p className="text-[#A0A0A0] text-base md:text-lg lg:text-xl mb-8 leading-relaxed text-justify">
+              <p className="text-[#A0A0A0] text-base md:text-lg lg:text-xl mb-8 leading-relaxed text-center md:text-justify">
                 {content.hero?.description}
               </p>
 
@@ -396,7 +430,7 @@ export default function PortfolioView() {
                   download={`${content.hero?.title?.replace(/\s+/g, '_')}_CV.pdf`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg shadow-purple-500/30 transition-all duration-300"
+                  className="flex items-center gap-2 px-7 py-3 rounded-full text-white font-semibold shadow-lg transition-all duration-300 theme-gradient theme-gradient-hover"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -408,7 +442,7 @@ export default function PortfolioView() {
                   href={content.contact.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-7 py-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg shadow-purple-500/30 transition-all duration-300"
+                  className="flex items-center gap-2 px-7 py-3 rounded-full text-white font-semibold shadow-lg transition-all duration-300 theme-gradient theme-gradient-hover"
                 >
                   <Github className="w-5 h-5" />
                   View GitHub
@@ -445,7 +479,7 @@ export default function PortfolioView() {
 
       {/* About Section */}
       {content.about && (
-        <section id="about" className="relative py-20 px-6 md:px-12 z-10">
+        <section id="about" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
           <div className="container mx-auto max-w-6xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -453,13 +487,12 @@ export default function PortfolioView() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <div className="text-center mb-12">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">About Me</h2>
-                <div className="w-20 h-1 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+              <div className="text-left md:text-center mb-8 md:mb-12">
+                <h2 className="text-4xl md:text-5xl font-bold text-white">About Me</h2>
               </div>
               
               <div className="max-w-4xl mx-auto">
-                <p className="text-base md:text-lg text-[#ADB7BE] leading-relaxed whitespace-pre-line text-justify">
+                <p className="text-base md:text-lg text-[#ADB7BE] leading-relaxed whitespace-pre-line text-center md:text-justify">
                   {content.about}
                 </p>
               </div>
@@ -470,7 +503,7 @@ export default function PortfolioView() {
 
       {/* Skills Section */}
       {content.skills && content.skills.length > 0 && (
-        <section id="skills" className="relative py-20 px-6 md:px-12 z-10">
+        <section id="skills" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
           <div className="container mx-auto max-w-6xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -478,9 +511,8 @@ export default function PortfolioView() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <div className="text-center mb-12">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Skills & Tools</h2>
-                <div className="w-20 h-1 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+              <div className="text-left md:text-center mb-8 md:mb-12">
+                <h2 className="text-4xl md:text-5xl font-bold text-white">Skills & Tools</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -605,11 +637,10 @@ export default function PortfolioView() {
 
       {/* Projects Section */}
       {content.projects && content.projects.length > 0 && (
-        <section id="projects" className="relative py-20 px-6 md:px-12 z-10">
+        <section id="projects" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
           <div className="container mx-auto max-w-7xl">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">My Projects</h2>
-              <div className="w-20 h-1 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
+            <div className="text-left md:text-center mb-8 md:mb-12">
+              <h2 className="text-4xl md:text-5xl font-bold text-white">My Projects</h2>
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -695,14 +726,13 @@ export default function PortfolioView() {
       )}
 
       {/* Contact Section */}
-      <section id="contact" className="relative py-16 px-6 md:px-12 z-10">
+      <section id="contact" className="relative py-12 md:py-16 px-6 md:px-12 z-10">
         
         <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <div className="hidden md:block text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-white">
               Get in touch
             </h1>
-            <div className="w-20 h-1 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
           </div>
 
           <div className="flex flex-col lg:flex-row justify-between items-start gap-16">
@@ -834,7 +864,7 @@ export default function PortfolioView() {
 
               <button
                 type="submit"
-                className="group flex items-center gap-2 px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 bg-gradient-to-r from-[#2e2e2e] to-[#1f1f1f] hover:from-[#3d3d3d] hover:to-[#1a1a1a] hover:shadow-lg hover:shadow-gray-800/40 hover:scale-105"
+                className="group flex items-center gap-2 px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 theme-gradient theme-gradient-hover"
               >
                 Send Message
                 <svg 
@@ -967,5 +997,6 @@ export default function PortfolioView() {
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
