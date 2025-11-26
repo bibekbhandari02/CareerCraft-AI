@@ -22,14 +22,20 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
-      - key: OPENAI_API_KEY
-        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: ESEWA_MERCHANT_ID
         sync: false
       - key: ESEWA_SECRET_KEY
         sync: false
+      - key: ESEWA_SUCCESS_URL
+        value: https://portfolio-builder-client.onrender.com/payment/success
+      - key: ESEWA_FAILURE_URL
+        value: https://portfolio-builder-client.onrender.com/payment/failure
+      - key: ESEWA_PAYMENT_URL
+        value: https://rc-epay.esewa.com.np/api/epay/main/v2/form
+      - key: ESEWA_PAYMENT_STATUS_CHECK_URL
+        value: https://rc.esewa.com.np/api/epay/transaction/status
       - key: CLIENT_URL
         value: https://portfolio-builder-client.onrender.com
 
