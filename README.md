@@ -155,19 +155,28 @@ Access the app at: http://localhost:5173
 
 ## 🚀 Deployment
 
-### Frontend (Vercel)
-```bash
-cd client
-npm run build
-# Deploy dist folder to Vercel
-```
+### Deploy to Render (Recommended)
 
-### Backend (Render/Railway)
-```bash
-cd server
-# Deploy to Render or Railway
-# Set environment variables in dashboard
-```
+**Quick Deploy (15 minutes):**
+1. Push code to GitHub
+2. Follow `QUICK_DEPLOY.md`
+3. Use Render Blueprint for automatic deployment
+
+**Detailed Instructions:**
+- See `DEPLOYMENT_GUIDE.md` for comprehensive guide
+- See `DEPLOYMENT_CHECKLIST.md` for systematic approach
+- See `DEPLOYMENT_SUMMARY.md` for overview
+
+**What you need:**
+- MongoDB Atlas account (free)
+- Cloudinary account (free)
+- Render account (free)
+- API keys (Gemini/OpenAI)
+
+**Deployment files included:**
+- `render.yaml` - Automatic deployment configuration
+- Complete deployment guides
+- Environment variable templates
 
 ## 🤝 Contributing
 
