@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Save, FileText, Download, Upload } from 'lucide-react';
+import { ArrowLeft, Sparkles, Save, FileText, Download } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
 
 export default function CoverLetterBuilder() {
   const { id } = useParams();
@@ -12,18 +13,17 @@ export default function CoverLetterBuilder() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const [formData, setFormData] = useState({
     jobTitle: '',
     companyName: '',
     hiringManager: '',
     content: '',
-    resumeId: ''
+    resumeId: '',
+    customPrompt: ''
   });
 
   const [resumes, setResumes] = useState([]);
-  const [uploadedResumeFile, setUploadedResumeFile] = useState(null);
 
   useEffect(() => {
     fetchResumes();
@@ -53,53 +53,14 @@ export default function CoverLetterBuilder() {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
-    if (!validTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
-
-      const { data } = await api.post('/upload/resume', formDataUpload, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      setUploadedResumeFile(data.resumeData);
-      setFormData(prev => ({ ...prev, resumeId: '' })); // Clear selected resume
-      toast.success('Resume uploaded successfully!');
-    } catch (error) {
-      toast.error('Failed to upload resume');
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleGenerate = async () => {
     if (!formData.jobTitle) {
       toast.error('Please enter a job title');
       return;
     }
 
-    if (!formData.resumeId && !uploadedResumeFile) {
-      toast.error('Please select or upload a resume');
+    if (!formData.resumeId) {
+      toast.error('Please select a resume');
       return;
     }
 
@@ -110,29 +71,39 @@ export default function CoverLetterBuilder() {
     }
 
     setGenerating(true);
+    const loadingToast = toast.loading('Generating your cover letter with AI...');
+    
     try {
-      let resumeData;
-      if (uploadedResumeFile) {
-        resumeData = uploadedResumeFile;
-      } else {
-        resumeData = resumes.find(r => r._id === formData.resumeId);
-      }
+      const resumeData = resumes.find(r => r._id === formData.resumeId);
 
       const { data } = await api.post('/ai/cover-letter', {
         jobTitle: formData.jobTitle,
         companyName: formData.companyName,
         hiringManager: formData.hiringManager,
+        customPrompt: formData.customPrompt,
         resumeData: resumeData
       });
 
       setFormData(prev => ({ ...prev, content: data.coverLetter }));
-      toast.success('Cover letter generated!');
+      toast.success('Cover letter generated!', { id: loadingToast });
 
       // Refresh user credits
       const userRes = await api.get('/user/me');
       updateUser(userRes.data.user);
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to generate cover letter');
+      const errorMessage = error.response?.data?.error || 'Failed to generate cover letter';
+      
+      // Handle specific error cases
+      if (error.response?.status === 429) {
+        toast.error('Too many requests. Please wait a moment and try again.', { id: loadingToast });
+      } else if (error.response?.status === 403) {
+        toast.error(errorMessage, { id: loadingToast });
+        navigate('/pricing');
+      } else {
+        toast.error(errorMessage, { id: loadingToast });
+      }
+      
+      console.error('Generation error:', error);
     } finally {
       setGenerating(false);
     }
@@ -162,21 +133,76 @@ export default function CoverLetterBuilder() {
   };
 
   const handleDownload = () => {
-    const element = document.createElement('a');
-    const file = new Blob([formData.content], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = `${formData.jobTitle.replace(/\s+/g, '_')}_Cover_Letter.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    try {
+      const doc = new jsPDF();
+      
+      // Set up the document
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const maxWidth = pageWidth - (margin * 2);
+      
+      // Split content into lines
+      const lines = formData.content.split('\n');
+      let yPosition = margin;
+      
+      lines.forEach((line, index) => {
+        // Check if we need a new page
+        if (yPosition > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        
+        // Determine font style based on content
+        if (index === 0 || line.trim().length === 0) {
+          // First line (name) or empty lines
+          doc.setFontSize(line.trim().length > 0 ? 14 : 12);
+          doc.setFont('helvetica', 'bold');
+        } else if (line.includes('Dear ') || line.includes('Sincerely')) {
+          // Greeting and closing
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+        } else if (line.includes('@') || line.includes('|') || line.includes('http')) {
+          // Contact info lines
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+        } else {
+          // Body text
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+        }
+        
+        // Split long lines to fit page width
+        const splitLines = doc.splitTextToSize(line || ' ', maxWidth);
+        
+        splitLines.forEach(splitLine => {
+          if (yPosition > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          doc.text(splitLine, margin, yPosition);
+          yPosition += 7; // Line height
+        });
+      });
+      
+      // Generate filename
+      const fileName = `${formData.jobTitle.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
+      
+      // Save the PDF
+      doc.save(fileName);
+      toast.success('Cover letter downloaded as PDF!');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('Failed to generate PDF');
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-sm sm:text-base text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -184,34 +210,35 @@ export default function CoverLetterBuilder() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 max-w-5xl">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 text-sm sm:text-base"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             Back to Dashboard
           </button>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Cover Letter Builder</h1>
-              <p className="text-gray-600 mt-1">Create a personalized cover letter with AI</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Cover Letter Builder</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">Create a personalized cover letter with AI</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={handleDownload}
                 disabled={!formData.content}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 <Download className="w-4 h-4" />
-                Download
+                <span className="hidden sm:inline">Download</span>
+                <span className="sm:hidden">PDF</span>
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !formData.content}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
                 <Save className="w-4 h-4" />
                 {saving ? 'Saving...' : 'Save'}
@@ -220,14 +247,14 @@ export default function CoverLetterBuilder() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Input Form */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold mb-6">Job Details</h2>
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">Job Details</h2>
             
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Job Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -235,12 +262,12 @@ export default function CoverLetterBuilder() {
                   value={formData.jobTitle}
                   onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
                   placeholder="e.g., Senior Software Engineer"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Company Name
                 </label>
                 <input
@@ -248,12 +275,12 @@ export default function CoverLetterBuilder() {
                   value={formData.companyName}
                   onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                   placeholder="e.g., Google"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Hiring Manager Name
                 </label>
                 <input
@@ -261,27 +288,25 @@ export default function CoverLetterBuilder() {
                   value={formData.hiringManager}
                   onChange={(e) => setFormData({ ...formData, hiringManager: e.target.value })}
                   placeholder="e.g., John Smith"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Select Resume <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.resumeId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, resumeId: e.target.value });
-                    setUploadedResumeFile(null); // Clear uploaded file when selecting from list
-                  }}
-                  disabled={uploadedResumeFile !== null}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  onChange={(e) => setFormData({ ...formData, resumeId: e.target.value })}
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
                   <option value="">Choose a resume...</option>
-                  {resumes.map((resume, index) => {
+                  {resumes.map((resume) => {
                     const name = resume.personalInfo?.fullName || 'Untitled';
-                    const template = resume.template ? ` - ${resume.template.charAt(0).toUpperCase() + resume.template.slice(1)}` : '';
+                    // Display "ATS-Friendly" instead of "Classic"
+                    const templateName = resume.template === 'classic' ? 'ATS-Friendly' : resume.template?.charAt(0).toUpperCase() + resume.template?.slice(1);
+                    const template = templateName ? ` - ${templateName}` : '';
                     const date = new Date(resume.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                     const displayName = `${name}${template} (${date})`;
                     
@@ -294,69 +319,42 @@ export default function CoverLetterBuilder() {
                 </select>
               </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">OR</span>
-                </div>
-              </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Resume File
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                  Custom Instructions (Optional)
                 </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileUpload}
-                    disabled={uploading || formData.resumeId !== ''}
-                    className="hidden"
-                    id="resume-upload"
-                  />
-                  <label
-                    htmlFor="resume-upload"
-                    className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                      uploading || formData.resumeId !== ''
-                        ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
-                        : 'border-gray-300 hover:border-indigo-500 bg-white'
-                    }`}
-                  >
-                    <Upload className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-600">
-                      {uploading ? 'Uploading...' : uploadedResumeFile ? 'Resume Uploaded ✓' : 'Click to upload PDF or Word'}
-                    </span>
-                  </label>
-                </div>
-                {uploadedResumeFile && (
-                  <div className="mt-2 flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                    <span className="text-sm text-green-700">Resume uploaded successfully</span>
-                    <button
-                      onClick={() => setUploadedResumeFile(null)}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
+                <textarea
+                  value={formData.customPrompt}
+                  onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
+                  placeholder="e.g., Emphasize my leadership skills, mention my passion for sustainability, keep it under 300 words..."
+                  rows="3"
+                  className="w-full px-3 sm:px-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                />
                 <p className="text-xs text-gray-500 mt-1">
-                  Supported formats: PDF, DOC, DOCX (Max 5MB)
+                  Give specific instructions to customize your cover letter
                 </p>
               </div>
 
               <button
                 onClick={handleGenerate}
-                disabled={generating || !formData.jobTitle || (!formData.resumeId && !uploadedResumeFile)}
-                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                disabled={generating || !formData.jobTitle || !formData.resumeId}
+                className="w-full flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold transition-all text-sm sm:text-base"
               >
-                <Sparkles className="w-5 h-5" />
-                {generating ? 'Generating...' : 'Generate with AI'}
+                {generating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white"></div>
+                    <span className="text-sm sm:text-base">Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-sm sm:text-base">Generate with AI</span>
+                  </>
+                )}
               </button>
 
               {user?.subscription === 'free' && (
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-xs sm:text-sm text-gray-600 text-center">
                   Credits remaining: {user?.credits?.coverLetters || 0}
                 </p>
               )}
@@ -364,17 +362,18 @@ export default function CoverLetterBuilder() {
           </div>
 
           {/* Preview/Editor */}
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Cover Letter</h2>
-              <FileText className="w-6 h-6 text-indigo-600" />
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold">Cover Letter</h2>
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
             </div>
 
             <textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               placeholder="Your AI-generated cover letter will appear here. You can edit it after generation."
-              className="w-full h-[500px] px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono text-sm"
+              className="w-full h-[400px] sm:h-[500px] px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-xs sm:text-sm leading-relaxed"
+              style={{ whiteSpace: 'pre-wrap', fontFamily: 'system-ui, -apple-system, sans-serif' }}
             />
           </div>
         </div>

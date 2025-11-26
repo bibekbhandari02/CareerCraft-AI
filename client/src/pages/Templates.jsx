@@ -148,7 +148,7 @@ export default function Templates() {
                   <div className="h-full w-full flex items-center justify-center bg-gray-100 overflow-hidden">
                     <div className="bg-white shadow-sm" style={{ width: '180px', height: '254px', overflow: 'hidden' }}>
                       <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '360px', height: '508px', padding: '24px' }}>
-                    {/* Classic Template */}
+                    {/* ATS-Friendly Template */}
                     {template.id === 'classic' && (
                       <div className="space-y-3">
                         {/* Header - Left Aligned */}

@@ -1,9 +1,16 @@
 import fetch from 'node-fetch';
+import mammoth from 'mammoth';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent';
 
-// Helper function to call Gemini API
-async function callGeminiAPI(prompt) {
+// Helper function to call Gemini API with retry logic
+async function callGeminiAPI(prompt, options = {}) {
+  const { maxRetries = 2, timeout = 30000 } = options;
+  
   // Get API key at runtime (after dotenv has loaded)
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   
@@ -27,38 +34,70 @@ async function callGeminiAPI(prompt) {
     }
   };
 
-  try {
-    console.log('🤖 Calling Gemini API...');
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody)
-    });
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        console.log(`🔄 Retry attempt ${attempt}/${maxRetries}...`);
+        // Exponential backoff: wait 1s, 2s, 4s...
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+      }
+      
+      console.log('🤖 Calling Gemini API...');
+      
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API Error:', errorData);
-      throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Gemini API Error:', errorData);
+        
+        // Don't retry on client errors (4xx)
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+        }
+        
+        // Retry on server errors (5xx)
+        lastError = new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+        continue;
+      }
+
+      const data = await response.json();
+      
+      if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Invalid response from Gemini API');
+      }
+
+      const generatedText = data.candidates[0].content.parts[0].text;
+      console.log('✅ Gemini API response received');
+      
+      return generatedText;
+      
+    } catch (error) {
+      console.error(`❌ Gemini API call failed (attempt ${attempt + 1}):`, error.message);
+      lastError = error;
+      
+      // Don't retry on abort/timeout or client errors
+      if (error.name === 'AbortError' || error.message.includes('Gemini API error:')) {
+        throw error;
+      }
     }
-
-    const data = await response.json();
-    
-    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid response from Gemini API');
-    }
-
-    const generatedText = data.candidates[0].content.parts[0].text;
-    console.log('✅ Gemini API response received');
-    
-    return generatedText;
-    
-  } catch (error) {
-    console.error('❌ Gemini API call failed:', error.message);
-    throw error;
   }
+  
+  throw lastError || new Error('Failed to generate content after retries');
 }
 
 export const enhanceResume = async (resumeData) => {
@@ -129,32 +168,135 @@ ${!hasExperience ? '**Tips for Freshers**\n[Specific advice to stand out]' : ''}
   }
 };
 
-export const generateCoverLetter = async (jobTitle, resumeData, companyName = '', hiringManager = '') => {
+export const generateCoverLetter = async (jobTitle, resumeData, companyName = '', hiringManager = '', customPrompt = '') => {
   const companyText = companyName ? ` at ${companyName}` : '';
-  const greeting = hiringManager ? `Dear ${hiringManager}` : 'Dear Hiring Manager';
+  const greeting = 'Dear Hiring Manager';
+  
+  // Get current date
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  // Extract contact info from resume - handle different field names
+  const personalInfo = resumeData.personalInfo || {};
+  const fullName = personalInfo.fullName || personalInfo.name || '[Your Name]';
+  const phone = personalInfo.phone || personalInfo.phoneNumber || personalInfo.mobile || '[Phone Number]';
+  const email = personalInfo.email || personalInfo.emailAddress || '[Email Address]';
+  const location = personalInfo.location || personalInfo.address || personalInfo.city || '[Location]';
+  const linkedin = personalInfo.linkedin || personalInfo.linkedinUrl || '';
+  const github = personalInfo.github || personalInfo.githubUrl || '';
+  
+  // Check if user wants to remove date
+  const includeDate = !customPrompt?.toLowerCase().includes('remove the date') && 
+                      !customPrompt?.toLowerCase().includes('without date') &&
+                      !customPrompt?.toLowerCase().includes('no date');
+  
+  // Build header
+  let header = `${fullName}\n${phone} | ${email}\n${location}`;
+  if (linkedin || github) {
+    if (linkedin) header += `\nLinkedIn: ${linkedin}`;
+    if (github) header += `\nGitHub: ${github}`;
+  }
+  
+  // Add date if not explicitly removed
+  if (includeDate) {
+    header += `\n\n${currentDate}\n\n`;
+  } else {
+    header += `\n\n`;
+  }
+  
+  // Add recipient info if available
+  if (hiringManager || companyName) {
+    if (hiringManager) header += `${hiringManager}\n`;
+    if (companyName) header += `${companyName}\n`;
+    header += '\n';
+  }
+  
+  // Determine paragraph count from custom prompt or use default
+  let paragraphInstruction = 'Write 3 concise, impactful paragraphs';
+  if (customPrompt) {
+    if (customPrompt.toLowerCase().includes('2 paragraph')) {
+      paragraphInstruction = 'Write 2 concise, impactful paragraphs';
+    } else if (customPrompt.toLowerCase().includes('1 paragraph')) {
+      paragraphInstruction = 'Write 1 concise, impactful paragraph';
+    } else if (customPrompt.toLowerCase().includes('4 paragraph')) {
+      paragraphInstruction = 'Write 4 concise, impactful paragraphs';
+    }
+  }
+  
+  // Create a condensed version of resume data to reduce token usage
+  const condensedResume = {
+    name: fullName,
+    experience: resumeData.experience?.slice(0, 2).map(exp => ({
+      position: exp.position,
+      company: exp.company,
+      description: exp.description?.substring(0, 200) // Limit description length
+    })),
+    skills: resumeData.skills?.slice(0, 3).map(s => s.items?.join(', ')).join('; '),
+    education: resumeData.education?.[0] ? {
+      degree: resumeData.education[0].degree,
+      institution: resumeData.education[0].institution
+    } : null
+  };
   
   const prompt = `You are a professional cover letter writer.
 
 Write a professional cover letter for the position: ${jobTitle}${companyText}.
 
-Use the following resume data and customize it to match the role.
+Candidate Background:
+- Name: ${condensedResume.name}
+- Recent Experience: ${JSON.stringify(condensedResume.experience)}
+- Key Skills: ${condensedResume.skills}
+- Education: ${JSON.stringify(condensedResume.education)}
 
-Resume: ${JSON.stringify(resumeData)}
+${customPrompt ? `\nUSER'S CUSTOM INSTRUCTIONS (PRIORITY):\n${customPrompt}\n\nFollow these custom instructions carefully while maintaining professional quality.\n` : ''}
 
-Important:
-- Start with: "${greeting},"
-- Write 3 short paragraphs
+CRITICAL FORMAT REQUIREMENTS:
+- DO NOT include any header information (name, contact, date, recipient name, etc.) - this will be added automatically
+- You MUST start with EXACTLY this greeting: "Dear Hiring Manager,"
+- DO NOT use any other greeting like "Dear [Name]," or "Dear Sir/Madam,"
+- ${paragraphInstruction}
+- IMPORTANT: Use actual line breaks (press Enter twice) between paragraphs, NOT the text "\\n"
+- Add a blank line after the greeting
+- Add a blank line before "Sincerely,"
 - Be personalized and enthusiastic
 - Make it ATS friendly
 - Use professional tone
-- Highlight relevant experience and skills from the resume
-- End with "Sincerely," followed by the candidate's name`;
+- Highlight relevant experience and skills
+- End with "Sincerely," followed by ONLY the candidate's name (no contact info)
+
+EXAMPLE FORMAT (with actual line breaks):
+Dear Hiring Manager,
+
+[First paragraph - write actual content here]
+
+[Second paragraph - write actual content here]
+
+[Third paragraph - write actual content here]
+
+Sincerely,
+${fullName}
+
+IMPORTANT: 
+1. Use EXACTLY "Dear Hiring Manager," as the greeting - no other variation
+2. Use real line breaks in your response, not the literal text "\\n"
+3. The letter should be ready to send - professional, polished, and compelling with proper paragraph spacing.`;
 
   try {
-    return await callGeminiAPI(prompt);
+    let letterBody = await callGeminiAPI(prompt, { timeout: 30000, maxRetries: 2 });
+    
+    // Convert literal \n to actual line breaks if AI returned them as text
+    letterBody = letterBody.replace(/\\n\\n/g, '\n\n').replace(/\\n/g, '\n');
+    
+    return `${header}${letterBody}`;
   } catch (error) {
+    console.error('Cover letter generation failed:', error);
+    
+    // Provide fallback only in development
     if (process.env.NODE_ENV !== 'production') {
-      return `${greeting},
+      const fallbackBody = `${greeting},
 
 I am writing to express my strong interest in the ${jobTitle} position${companyText}. With my background in ${resumeData.experience?.[0]?.position || 'software development'} and proven track record of success, I am confident I would be a valuable addition to your team.
 
@@ -163,7 +305,9 @@ In my current role at ${resumeData.experience?.[0]?.company || 'my current compa
 I am excited about the opportunity to contribute to your organization and would welcome the chance to discuss how my skills and experience align with your needs.
 
 Sincerely,
-${resumeData.personalInfo?.fullName || 'Your Name'}`;
+${fullName}`;
+      
+      return `${header}${fallbackBody}`;
     }
     throw error;
   }
@@ -306,3 +450,87 @@ ${resumeData.skills?.[0]?.items || 'JavaScript, React, Node.js, MongoDB, Git'}
 *Note: This is an AI-enhanced version optimized for ATS systems*
 `;
 }
+
+// Parse resume from uploaded file using AI
+export const parseResumeFromFile = async (file) => {
+  try {
+    let extractedText = '';
+    
+    // Extract text based on file type
+    if (file.mimetype === 'application/pdf') {
+      // Parse PDF
+      console.log('📄 Parsing PDF file...');
+      const pdfData = await pdfParse(file.buffer);
+      extractedText = pdfData.text;
+      console.log('✅ PDF text extracted:', extractedText.substring(0, 200) + '...');
+    } else if (file.mimetype.includes('word')) {
+      // Parse Word document
+      console.log('📝 Parsing Word document...');
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      extractedText = result.value;
+      console.log('✅ Word text extracted:', extractedText.substring(0, 200) + '...');
+    } else {
+      throw new Error('Unsupported file type');
+    }
+    
+    // Use AI to parse the extracted text into structured data
+    const prompt = `You are a resume parser. Extract information from this resume text and return it as JSON.
+
+Resume Text:
+${extractedText}
+
+Extract and return ONLY valid JSON in this exact format:
+{
+  "personalInfo": {
+    "fullName": "extract full name",
+    "email": "extract email",
+    "phone": "extract phone number",
+    "location": "extract location/address"
+  },
+  "summary": "extract professional summary or objective",
+  "experience": [
+    {
+      "position": "job title",
+      "company": "company name",
+      "startDate": "start date",
+      "endDate": "end date or Present",
+      "description": "job responsibilities and achievements"
+    }
+  ],
+  "education": [
+    {
+      "degree": "degree name",
+      "institution": "university/college name",
+      "graduationDate": "graduation year"
+    }
+  ],
+  "skills": ["skill1", "skill2", "skill3"]
+}
+
+Return ONLY the JSON, no markdown or explanations.`;
+
+    console.log('🤖 Parsing resume with AI...');
+    const response = await callGeminiAPI(prompt);
+    
+    // Parse the JSON response
+    let parsedData;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedData = JSON.parse(cleanedResponse);
+      console.log('✅ Resume parsed successfully:', parsedData.personalInfo?.fullName);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      throw new Error('Failed to parse AI response');
+    }
+    
+    return {
+      ...parsedData,
+      uploadedFile: true,
+      fileName: file.originalname
+    };
+    
+  } catch (error) {
+    console.error('❌ Resume parsing error:', error);
+    throw error;
+  }
+};

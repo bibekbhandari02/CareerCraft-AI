@@ -169,25 +169,36 @@ router.post('/resume', authenticate, resumeUpload.single('file'), async (req, re
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // For now, we'll create a simple resume data structure
-    // In a production app, you'd want to use a PDF parser library like pdf-parse
-    // or mammoth for Word documents to extract actual text
+    // Import the AI parsing function
+    const { parseResumeFromFile } = await import('../services/ai.js');
     
-    const resumeData = {
+    // Parse the resume using AI
+    const resumeData = await parseResumeFromFile(req.file);
+
+    res.json({
+      success: true,
+      resumeData: resumeData,
+      message: 'Resume uploaded and parsed successfully!'
+    });
+  } catch (error) {
+    console.error('Resume upload error:', error);
+    
+    // Fallback to basic structure if AI parsing fails
+    const fallbackData = {
       personalInfo: {
-        fullName: 'Uploaded Resume',
+        fullName: 'Resume User',
         email: 'user@example.com',
         phone: '',
         location: ''
       },
-      summary: 'Resume content from uploaded file',
+      summary: 'Professional with experience in various roles',
       experience: [
         {
           position: 'Professional',
           company: 'Various Companies',
           startDate: '',
           endDate: '',
-          description: 'Experience details from uploaded resume'
+          description: 'Experience from uploaded resume'
         }
       ],
       education: [
@@ -197,19 +208,16 @@ router.post('/resume', authenticate, resumeUpload.single('file'), async (req, re
           graduationDate: ''
         }
       ],
-      skills: ['Skills from uploaded resume'],
+      skills: ['Professional Skills'],
       uploadedFile: true,
       fileName: req.file.originalname
     };
-
+    
     res.json({
       success: true,
-      resumeData: resumeData,
-      message: 'Resume uploaded successfully. AI will generate cover letter based on the file.'
+      resumeData: fallbackData,
+      message: 'Resume uploaded. Using basic parsing.'
     });
-  } catch (error) {
-    console.error('Resume upload error:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 

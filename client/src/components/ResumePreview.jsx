@@ -25,11 +25,11 @@ export default function ResumePreview({ resumeData, template = 'professional' })
   } else if (template === 'chronological') {
     return <ChronologicalTemplate resumeData={resumeData} />;
   } else if (template === 'classic') {
-    // Classic left-aligned template (original design)
+    // ATS-Friendly left-aligned template (original design)
     return renderClassicTemplate(resumeData);
   }
 
-  // Fallback: Classic left-aligned template for old resumes
+  // Fallback: ATS-Friendly left-aligned template for old resumes
   return renderClassicTemplate(resumeData);
 }
 
