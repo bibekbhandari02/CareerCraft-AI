@@ -20,6 +20,21 @@ export default function ResumeBuilder() {
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const { register, handleSubmit, setValue, watch, reset } = useForm();
 
+  // Map template IDs to display names
+  const getTemplateDisplayName = (templateId) => {
+    const templateNames = {
+      'professional': 'Professional',
+      'classic': 'ATS-Friendly',
+      'chronological': 'Chronological',
+      'modern': 'Modern',
+      'creative': 'Creative',
+      'minimal': 'Minimal',
+      'executive': 'Executive',
+      'technical': 'Technical'
+    };
+    return templateNames[templateId] || templateId;
+  };
+
   useEffect(() => {
     if (id) {
       fetchResume();
@@ -337,7 +352,7 @@ export default function ResumeBuilder() {
                 <h1 className="text-2xl sm:text-3xl font-bold">Resume Builder</h1>
                 {selectedTemplate && (
                   <p className="text-sm text-gray-600 mt-1">
-                    Template: <span className="font-semibold text-indigo-600 capitalize">{selectedTemplate}</span>
+                    Template: <span className="font-semibold text-indigo-600">{getTemplateDisplayName(selectedTemplate)}</span>
                   </p>
                 )}
               </div>
