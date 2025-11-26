@@ -101,4 +101,22 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Delete portfolio
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOneAndDelete({ 
+      _id: req.params.id, 
+      userId: req.userId 
+    });
+    
+    if (!portfolio) {
+      return res.status(404).json({ error: 'Portfolio not found' });
+    }
+    
+    res.json({ message: 'Portfolio deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

@@ -12,7 +12,7 @@ const resumeSchema = new mongoose.Schema({
   },
   template: {
     type: String,
-    default: 'modern'
+    default: 'professional'
   },
   personalInfo: {
     fullName: String,
@@ -21,7 +21,8 @@ const resumeSchema = new mongoose.Schema({
     location: String,
     linkedin: String,
     github: String,
-    website: String
+    website: String,
+    profileImage: String
   },
   summary: String,
   education: [{

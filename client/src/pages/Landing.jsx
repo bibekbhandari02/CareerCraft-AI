@@ -1,7 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { FileText, Globe, Sparkles, CheckCircle, Zap, Users, Award, ArrowRight } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 export default function Landing() {
+  const { user } = useAuthStore();
+
+  // Redirect to dashboard if user is logged in
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
 

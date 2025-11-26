@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileText, Globe, Plus, CreditCard, Sparkles } from 'lucide-react';
+import { FileText, Globe, Plus, CreditCard, Sparkles, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
+import toast from 'react-hot-toast';
 
 export default function Dashboard() {
   const { user, updateUser } = useAuthStore();
@@ -29,6 +30,47 @@ export default function Dashboard() {
       console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteResume = async (e, resumeId, resumeName) => {
+    e.preventDefault(); // Prevent navigation to resume
+    e.stopPropagation();
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${resumeName}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await api.delete(`/resume/${resumeId}`);
+      toast.success('Resume deleted successfully');
+      // Remove from local state
+      setResumes(resumes.filter(r => r._id !== resumeId));
+    } catch (error) {
+      toast.error('Failed to delete resume');
+      console.error('Delete error:', error);
+    }
+  };
+
+  const handleDeletePortfolio = async (e, portfolioId, portfolioName) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${portfolioName}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await api.delete(`/portfolio/${portfolioId}`);
+      toast.success('Portfolio deleted successfully');
+      setPortfolios(portfolios.filter(p => p._id !== portfolioId));
+    } catch (error) {
+      toast.error('Failed to delete portfolio');
+      console.error('Delete error:', error);
     }
   };
 
@@ -110,19 +152,38 @@ export default function Dashboard() {
             {resumes.length === 0 ? (
               <p className="text-gray-500 col-span-3">No resumes yet. Create your first one!</p>
             ) : (
-              resumes.map((resume) => (
-                <Link
-                  key={resume._id}
-                  to={`/resume/${resume._id}`}
-                  className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
-                >
-                  <FileText className="w-8 h-8 text-indigo-600 mb-2" />
-                  <h3 className="font-semibold">{resume.title}</h3>
-                  <p className="text-sm text-gray-500">
-                    {new Date(resume.updatedAt).toLocaleDateString()}
-                  </p>
-                </Link>
-              ))
+              resumes.map((resume) => {
+                const resumeName = resume.personalInfo?.fullName 
+                  ? `${resume.personalInfo.fullName}'s Resume` 
+                  : resume.title || 'Untitled Resume';
+                
+                return (
+                  <div key={resume._id} className="relative group">
+                    <Link
+                      to={`/resume/${resume._id}`}
+                      className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition block"
+                    >
+                      <FileText className="w-8 h-8 text-indigo-600 mb-2" />
+                      <h3 className="font-semibold">{resumeName}</h3>
+                      <p className="text-sm text-gray-500">
+                        Updated {new Date(resume.updatedAt).toLocaleDateString()}
+                      </p>
+                      {resume.template && (
+                        <p className="text-xs text-indigo-600 mt-1 capitalize">
+                          {resume.template === 'classic' ? 'ATS-Friendly' : resume.template} Template
+                        </p>
+                      )}
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeleteResume(e, resume._id, resumeName)}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete resume"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>
@@ -134,17 +195,29 @@ export default function Dashboard() {
             {portfolios.length === 0 ? (
               <p className="text-gray-500 col-span-3">No portfolios yet. Create your first one!</p>
             ) : (
-              portfolios.map((portfolio) => (
-                <Link
-                  key={portfolio._id}
-                  to={`/portfolio/${portfolio._id}`}
-                  className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition"
-                >
-                  <Globe className="w-8 h-8 text-purple-600 mb-2" />
-                  <h3 className="font-semibold">{portfolio.subdomain || 'Untitled'}</h3>
-                  <p className="text-sm text-gray-500">{portfolio.views} views</p>
-                </Link>
-              ))
+              portfolios.map((portfolio) => {
+                const portfolioName = portfolio.subdomain || 'Untitled';
+                
+                return (
+                  <div key={portfolio._id} className="relative group">
+                    <Link
+                      to={`/portfolio/${portfolio._id}`}
+                      className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition block"
+                    >
+                      <Globe className="w-8 h-8 text-purple-600 mb-2" />
+                      <h3 className="font-semibold">{portfolioName}</h3>
+                      <p className="text-sm text-gray-500">{portfolio.views} views</p>
+                    </Link>
+                    <button
+                      onClick={(e) => handleDeletePortfolio(e, portfolio._id, portfolioName)}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      title="Delete portfolio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </section>

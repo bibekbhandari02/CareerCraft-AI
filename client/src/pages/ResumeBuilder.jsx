@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Sparkles, Download, Save, ArrowLeft, Eye, X, Trash2 } from 'lucide-react';
@@ -11,18 +11,27 @@ import ResumePreview from '../components/ResumePreview';
 export default function ResumeBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [resumeType, setResumeType] = useState('experienced'); // 'experienced' or 'fresher'
+  const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const { register, handleSubmit, setValue, watch, reset } = useForm();
 
   useEffect(() => {
     if (id) {
       fetchResume();
+    } else {
+      // Check if template is specified in URL
+      const templateParam = searchParams.get('template');
+      if (templateParam) {
+        setSelectedTemplate(templateParam);
+        toast.success(`Using ${templateParam} template!`);
+      }
     }
-  }, [id]);
+  }, [id, searchParams]);
 
   const fetchResume = async () => {
     try {
@@ -30,6 +39,10 @@ export default function ResumeBuilder() {
       Object.keys(data.resume).forEach(key => {
         setValue(key, data.resume[key]);
       });
+      // Set the template if it exists
+      if (data.resume.template) {
+        setSelectedTemplate(data.resume.template);
+      }
     } catch (error) {
       toast.error('Failed to load resume');
     }
@@ -47,7 +60,8 @@ export default function ResumeBuilder() {
       ...data,
       title: data.personalInfo?.fullName 
         ? `${data.personalInfo.fullName}'s Resume` 
-        : 'My Resume'
+        : 'My Resume',
+      template: selectedTemplate
     };
 
     setLoading(true);
@@ -285,6 +299,13 @@ export default function ResumeBuilder() {
           issuer: '',
           date: '',
           link: ''
+        }],
+        languages: ['', '', ''],
+        interests: ['', '', ''],
+        volunteer: [{
+          role: '',
+          organization: '',
+          date: ''
         }]
       });
       
@@ -312,7 +333,14 @@ export default function ResumeBuilder() {
               <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
                 <ArrowLeft className="w-6 h-6" />
               </Link>
-              <h1 className="text-3xl font-bold">Resume Builder</h1>
+              <div>
+                <h1 className="text-3xl font-bold">Resume Builder</h1>
+                {selectedTemplate && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Template: <span className="font-semibold text-indigo-600 capitalize">{selectedTemplate}</span>
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <button
@@ -408,7 +436,7 @@ export default function ResumeBuilder() {
 
           {/* Hidden Preview for PDF Generation */}
           <div className="fixed -left-[9999px] top-0">
-            <ResumePreview resumeData={watch()} />
+            <ResumePreview resumeData={watch()} template={selectedTemplate} />
           </div>
 
           {/* Preview Modal */}
@@ -425,7 +453,7 @@ export default function ResumeBuilder() {
                   </button>
                 </div>
                 <div className="p-8">
-                  <ResumePreview resumeData={watch()} />
+                  <ResumePreview resumeData={watch()} template={selectedTemplate} />
                 </div>
                 <div className="sticky bottom-0 bg-white border-t p-4 flex justify-end gap-2">
                   <button
@@ -527,6 +555,24 @@ export default function ResumeBuilder() {
                   className="px-4 py-2 border rounded-lg"
                 />
               </div>
+              
+              {/* Profile Image - For Modern Template */}
+              {selectedTemplate === 'modern' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Profile Image (Optional - For Modern Template)
+                  </label>
+                  <input
+                    {...register('personalInfo.profileImage')}
+                    type="url"
+                    placeholder="Image URL (e.g., https://example.com/photo.jpg)"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Tip: Upload your image to a service like Imgur or use a direct image URL
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Summary */}
@@ -718,6 +764,79 @@ export default function ResumeBuilder() {
                 className="w-full px-4 py-2 border rounded-lg font-mono text-sm"
               />
             </section>
+
+            {/* Chronological Template Specific Sections */}
+            {selectedTemplate === 'chronological' && (
+              <>
+                {/* Languages */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">Languages <span className="text-sm text-gray-500 font-normal">(Optional - Chronological Template)</span></h2>
+                  <div className="space-y-3">
+                    <input
+                      {...register('languages.0')}
+                      placeholder="Language (e.g., English)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register('languages.1')}
+                      placeholder="Language (e.g., Spanish)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register('languages.2')}
+                      placeholder="Language (e.g., French)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                  </div>
+                </section>
+
+                {/* Interests */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">Interests <span className="text-sm text-gray-500 font-normal">(Optional - Chronological Template)</span></h2>
+                  <div className="space-y-3">
+                    <input
+                      {...register('interests.0')}
+                      placeholder="Interest (e.g., Photography)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register('interests.1')}
+                      placeholder="Interest (e.g., Hiking)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register('interests.2')}
+                      placeholder="Interest (e.g., Reading)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                  </div>
+                </section>
+
+                {/* Volunteer Work */}
+                <section>
+                  <h2 className="text-xl font-semibold mb-4">Volunteer Work <span className="text-sm text-gray-500 font-normal">(Optional - Chronological Template)</span></h2>
+                  <div className="space-y-4">
+                    <input
+                      {...register('volunteer.0.role')}
+                      placeholder="Role (e.g., Volunteer Teacher)"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <input
+                        {...register('volunteer.0.organization')}
+                        placeholder="Organization"
+                        className="px-4 py-2 border rounded-lg"
+                      />
+                      <input
+                        {...register('volunteer.0.date')}
+                        placeholder="Date (e.g., 2023 - Present)"
+                        className="px-4 py-2 border rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
 
             {/* Actions */}
             <div className="flex gap-4">
