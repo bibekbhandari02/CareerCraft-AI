@@ -352,7 +352,7 @@ export default function PortfolioView() {
                 {activeSection === item && (
                   <motion.div
                     layoutId="activeIndicator"
-                    className="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-gray-400 to-gray-600 rounded"
+                    className="absolute -bottom-1 left-0 right-0 h-1 rounded theme-gradient"
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -428,7 +428,7 @@ export default function PortfolioView() {
                     >
                       {item}
                       {activeSection === item && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 w-2 h-2 rounded-full bg-gradient-to-r from-gray-400 to-gray-600" />
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 w-2 h-2 rounded-full theme-gradient" />
                       )}
                     </button>
                   </motion.li>
