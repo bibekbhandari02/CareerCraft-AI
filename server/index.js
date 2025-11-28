@@ -12,6 +12,8 @@ import aiRoutes from './routes/ai.js';
 import paymentRoutes from './routes/payment.js';
 import uploadRoutes from './routes/upload.js';
 import coverLetterRoutes from './routes/coverLetter.js';
+import analyticsRoutes from './routes/analytics.js';
+import versionsRoutes from './routes/versions.js';
 
 dotenv.config();
 
@@ -37,10 +39,8 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ Allowed origin:', origin);
       callback(null, true);
     } else {
-      console.log('❌ Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -84,6 +84,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cover-letter', coverLetterRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/versions', versionsRoutes);
 
 // Root route
 app.get('/', (req, res) => {

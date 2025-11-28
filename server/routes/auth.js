@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import { sendWelcomeEmail } from '../services/email.js';
 
 const router = express.Router();
 
@@ -34,6 +35,9 @@ router.post('/register', [
     });
 
     await user.save();
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user).catch(err => console.error('Welcome email failed:', err));
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: '7d'

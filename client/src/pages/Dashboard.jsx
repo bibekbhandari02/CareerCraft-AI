@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Globe, Plus, CreditCard, Sparkles, Trash2, Mail } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import api from '../lib/api';
+import api, { trackEvent } from '../lib/api';
 import toast from 'react-hot-toast';
 
 export default function Dashboard() {
@@ -203,6 +203,7 @@ export default function Dashboard() {
                     <div key={resume._id} className="relative group">
                       <Link
                         to={`/resume/${resume._id}`}
+                        onClick={() => trackEvent('resume_view', { resumeId: resume._id, template: resume.template })}
                         className="bg-white p-4 sm:p-5 lg:p-6 rounded-lg shadow hover:shadow-lg transition block"
                       >
                         <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-indigo-600 mb-2" />

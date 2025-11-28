@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Sparkles, Eye, Save, ArrowLeft, Plus, Trash2, Upload, Globe, ExternalLink } from 'lucide-react';
-import api from '../lib/api';
+import api, { trackEvent } from '../lib/api';
 import PortfolioPreview from '../components/PortfolioPreview';
 
 export default function PortfolioBuilder() {
@@ -106,6 +106,9 @@ export default function PortfolioBuilder() {
   const generateWithAI = async (customPrompt = '') => {
     setGenerating(true);
     setShowAIModal(false);
+    
+    const loadingToast = toast.loading('AI is generating your content...');
+    
     try {
       const currentData = watch();
       const prompt = customPrompt || aiPrompt;
@@ -130,7 +133,7 @@ export default function PortfolioBuilder() {
         setValue('content.about', content.about);
       }
       
-      // Update skills - simple replace
+      // Update skills - SMART MERGE
       if (content.skills && Array.isArray(content.skills) && content.skills.length > 0) {
         const formattedSkills = content.skills.map((skill) => {
           const items = Array.isArray(skill.items) ? skill.items.join(', ') : skill.items;
@@ -139,7 +142,7 @@ export default function PortfolioBuilder() {
         setValue('content.skills', formattedSkills);
       }
       
-      // Update projects - simple replace
+      // Update projects - SMART MERGE
       if (content.projects && Array.isArray(content.projects) && content.projects.length > 0) {
         const existingProjects = currentData.content?.projects || [];
         
@@ -156,17 +159,31 @@ export default function PortfolioBuilder() {
             technologies: techs || existing?.technologies || '',
             liveLink: existing?.liveLink || aiProject.liveLink || '',
             githubLink: existing?.githubLink || aiProject.githubLink || '',
-            image: existing?.image || ''
+            image: existing?.image || '',
+            tag: existing?.tag || aiProject.tag || ''
           };
         });
         
         setValue('content.projects', formattedProjects);
       }
       
+      // Track AI enhancement
+      trackEvent('ai_enhancement_used', { 
+        type: 'portfolio',
+        portfolioId: id 
+      });
+      
       setAiPrompt('');
-      toast.success('Portfolio content generated with AI!');
+      toast.dismiss(loadingToast);
+      toast.success('✨ Portfolio content generated successfully!', {
+        duration: 4000,
+        icon: '🎉'
+      });
     } catch (error) {
-      toast.error(error.response?.data?.error || 'AI generation failed');
+      toast.dismiss(loadingToast);
+      toast.error(error.response?.data?.error || 'AI generation failed. Please try again.', {
+        duration: 5000
+      });
     } finally {
       setGenerating(false);
     }
@@ -263,6 +280,13 @@ export default function PortfolioBuilder() {
         toast.success('Portfolio updated!');
       } else {
         const response = await api.post('/portfolio', formattedData);
+        
+        // Track portfolio creation
+        trackEvent('portfolio_created', { 
+          portfolioId: response.data.portfolio._id,
+          theme: formattedData.theme 
+        });
+        
         toast.success('Portfolio created!');
         navigate(`/portfolio/${response.data.portfolio._id}`);
       }
@@ -958,15 +982,16 @@ export default function PortfolioBuilder() {
             </p>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-              <p className="font-semibold text-blue-900">Example prompts:</p>
-              <p className="text-blue-800">• "Make my about section more professional and concise"</p>
-              <p className="text-blue-800">• "Improve project descriptions to highlight impact"</p>
-              <p className="text-blue-800">• "Generate portfolio content for a senior full-stack developer"</p>
-              <p className="text-blue-800">• "Enhance all content to be more achievement-focused"</p>
+              <p className="font-semibold text-blue-900">✨ What the AI can do:</p>
+              <p className="text-blue-800">• <strong>Add specific content:</strong> "Add React and TypeScript to my skills"</p>
+              <p className="text-blue-800">• <strong>Create new items:</strong> "Create a project about e-commerce"</p>
+              <p className="text-blue-800">• <strong>Improve existing:</strong> "Make my about section more professional"</p>
+              <p className="text-blue-800">• <strong>Generate multiple:</strong> "Add 3 more web development projects"</p>
+              <p className="text-blue-800">• <strong>Enhance everything:</strong> "Make all content more achievement-focused"</p>
             </div>
             
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 sm:p-3 mb-3 sm:mb-4 text-xs sm:text-sm text-amber-800">
-              <strong>Note:</strong> To add specific new skills or projects, use the "+ Add" buttons below each section for more control.
+            <div className="bg-green-50 border border-green-200 rounded-lg p-2.5 sm:p-3 mb-3 sm:mb-4 text-xs sm:text-sm text-green-800">
+              <strong>💡 Pro tip:</strong> The AI will preserve your existing content and only modify what you ask for. Be specific for best results!
             </div>
 
             <textarea

@@ -36,4 +36,16 @@ api.interceptors.response.use(
   }
 );
 
+// Analytics tracking helper
+export const trackEvent = async (action, metadata = {}) => {
+  try {
+    await api.post('/analytics/track', { action, metadata });
+  } catch (error) {
+    // Silently fail - don't disrupt user experience
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Analytics tracking failed:', error.response?.data || error.message);
+    }
+  }
+};
+
 export default api;

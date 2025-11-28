@@ -97,8 +97,14 @@ export default function PortfolioView() {
     restDelta: 0.001,
   });
 
+  // Prevent double fetch in React StrictMode
+  const hasFetched = useRef(false);
+  
   useEffect(() => {
-    fetchPortfolio();
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchPortfolio();
+    }
   }, [subdomain]);
 
   useEffect(() => {
@@ -155,6 +161,8 @@ export default function PortfolioView() {
     try {
       const { data } = await api.get(`/portfolio/public/${subdomain}`);
       setPortfolio(data.portfolio);
+      
+      // Portfolio view tracking is done server-side
     } catch (error) {
       console.error('Failed to load portfolio');
     } finally {

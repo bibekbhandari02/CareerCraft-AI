@@ -67,7 +67,35 @@ router.post('/portfolio-content', authenticate, aiRateLimiter, async (req, res) 
     const content = await generatePortfolioContent(userData, customPrompt);
     res.json({ content });
   } catch (error) {
+    console.error('Portfolio AI error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Score resume
+router.post('/score-resume', authenticate, aiRateLimiter, async (req, res) => {
+  try {
+    const { resumeData, jobDescription, useAI } = req.body;
+    
+    if (!resumeData) {
+      return res.status(400).json({ error: 'Resume data is required' });
+    }
+    
+    // Import scoring service
+    const { calculateATSScore, scoreResumeWithAI } = await import('../services/resumeScoring.js');
+    
+    if (useAI && req.user.subscription !== 'free') {
+      // AI scoring for paid users
+      const score = await scoreResumeWithAI(resumeData, jobDescription);
+      res.json({ score });
+    } else {
+      // Basic scoring for free users or when AI not requested
+      const score = calculateATSScore(resumeData);
+      res.json({ score: { basic: score } });
+    }
+  } catch (error) {
+    console.error('Resume scoring error:', error);
+    res.status(500).json({ error: error.message || 'Failed to score resume' });
   }
 });
 

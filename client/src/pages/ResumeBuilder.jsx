@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Sparkles, Download, Save, ArrowLeft, Eye, X, Trash2 } from 'lucide-react';
-import api from '../lib/api';
+import { Sparkles, Download, Save, ArrowLeft, Eye, X, Trash2, Award, History, Plus } from 'lucide-react';
+import api, { trackEvent } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { downloadResumePDF } from '../utils/pdfGenerator';
 import ResumePreview from '../components/ResumePreview';
+import ResumeScore from '../components/ResumeScore';
+import VersionHistory from '../components/VersionHistory';
 
 export default function ResumeBuilder() {
   const { id } = useParams();
@@ -15,10 +17,36 @@ export default function ResumeBuilder() {
   const [loading, setLoading] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showScore, setShowScore] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [enhancingSection, setEnhancingSection] = useState(null); // Track which section is being enhanced
+  const [previousValues, setPreviousValues] = useState(null); // For undo functionality
   const [resumeType, setResumeType] = useState('experienced'); // 'experienced' or 'fresher'
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
-  const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const { register, handleSubmit, setValue, watch, reset, control } = useForm({
+    defaultValues: {
+      experience: [{ company: '', position: '', startDate: '', endDate: '', description: [''] }],
+      projects: [{ name: '', description: '', technologies: '', link: '', github: '' }],
+      certifications: [{ name: '', issuer: '', date: '', link: '' }]
+    }
+  });
+  
+  // Field arrays for dynamic sections
+  const { fields: experienceFields, append: appendExperience, remove: removeExperience } = useFieldArray({
+    control,
+    name: 'experience'
+  });
+  
+  const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({
+    control,
+    name: 'projects'
+  });
+  
+  const { fields: certificationFields, append: appendCertification, remove: removeCertification } = useFieldArray({
+    control,
+    name: 'certifications'
+  });
   const templateToastShown = useRef(false);
 
   // Map template IDs to display names
@@ -91,11 +119,34 @@ export default function ResumeBuilder() {
         toast.success('Resume created!');
         navigate(`/resume/${response.data.resume._id}`);
       }
+      
+      // Clear undo state after successful save (changes are now permanent)
+      setPreviousValues(null);
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to save resume');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Undo last AI enhancement
+  const undoEnhancement = () => {
+    if (previousValues) {
+      Object.keys(previousValues).forEach(key => {
+        setValue(key, previousValues[key]);
+      });
+      setPreviousValues(null);
+      toast.success('Changes undone!');
+    }
+  };
+
+  // Enhance specific section
+  const enhanceSection = async (sectionName) => {
+    setEnhancingSection(sectionName);
+    // For now, just call the main enhance function
+    // In future, can make section-specific API calls
+    await enhanceWithAI();
+    setEnhancingSection(null);
   };
 
   const enhanceWithAI = async () => {
@@ -111,9 +162,51 @@ export default function ResumeBuilder() {
     try {
       const { data } = await api.post('/ai/enhance-resume', { resumeData });
       
+      // Save current values for undo
+      const currentValues = {
+        summary: resumeData.summary,
+        'experience.0.description.0': resumeData.experience?.[0]?.description?.[0],
+        'skills.0.items': resumeData.skills?.[0]?.items,
+        'projects.0.name': resumeData.projects?.[0]?.name,
+        'projects.0.description': resumeData.projects?.[0]?.description,
+        'projects.0.technologies': resumeData.projects?.[0]?.technologies,
+      };
+      setPreviousValues(currentValues);
+      
       // Parse AI response and extract useful content
-      const aiContent = data.enhanced;
+      let aiContent = data.enhanced;
       let updatedSections = [];
+      
+      // Check if response is JSON (fallback handling)
+      let parsedData = null;
+      try {
+        // Try to extract JSON if it's wrapped in code blocks
+        const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          parsedData = JSON.parse(jsonMatch[1]);
+        } else if (aiContent.trim().startsWith('{')) {
+          parsedData = JSON.parse(aiContent);
+        }
+      } catch (e) {
+        // Not JSON, continue with markdown parsing
+      }
+      
+      // If we got JSON, convert it to markdown format for parsing
+      if (parsedData && parsedData.resume) {
+        const resume = parsedData.resume;
+        aiContent = '';
+        if (resume.Summary) aiContent += `**Summary**\n${resume.Summary}\n\n`;
+        if (resume.Skills) aiContent += `**Skills**\n${resume.Skills}\n\n`;
+        if (resume.Projects && resume.Projects[0]) {
+          const proj = resume.Projects[0];
+          aiContent += `**Projects**\nProject: ${proj.name}\nDescription: ${proj.description}\nTechnologies: ${proj.technologies}\n`;
+          if (proj.github) aiContent += `GitHub: ${proj.github}\n`;
+          if (proj.link) aiContent += `Live: ${proj.link}\n`;
+        }
+        if (resume.Education && resume.Education[0]) {
+          aiContent += `\n**Education**\n${resume.Education[0].degree} in ${resume.Education[0].field}\n`;
+        }
+      }
       
       // 1. Extract professional summary
       const summaryMatch = aiContent.match(/\*\*Summary\*\*([\s\S]*?)(?=\*\*|$)/i);
@@ -141,62 +234,90 @@ export default function ResumeBuilder() {
       }
       
       // 3. Extract and enhance skills
-      const skillsMatch = aiContent.match(/\*\*Skills\*\*([\s\S]*?)(?=\*\*|$)/i);
+      const skillsMatch = aiContent.match(/\*\*Skills?\*\*([\s\S]*?)(?=\*\*|$)/i);
       if (skillsMatch && skillsMatch[1]) {
         const skillsText = skillsMatch[1].trim();
-        // Look for categorized skills format
+        // Look for categorized skills format (Frontend:, Backend:, etc.)
         const skillLines = skillsText.split('\n')
-          .filter(line => line.trim() && (line.includes(':') || line.trim().startsWith('*')))
-          .map(line => line.replace(/^\*\s*/, '').trim())
+          .filter(line => line.trim() && (line.includes(':') || line.trim().startsWith('*') || line.trim().startsWith('-')))
+          .map(line => line.replace(/^[\*\-]\s*/, '').trim())
+          .filter(line => line.length > 10) // Filter out very short lines
           .join('\n');
         
         if (skillLines) {
+          // Update the first skills entry with all organized skills
+          setValue('skills.0.category', 'Technical Skills');
           setValue('skills.0.items', skillLines);
           updatedSections.push('Skills');
         }
       }
       
-      // 4. Extract project suggestions
+      // 4. Extract and enhance ALL projects intelligently
       const projectsMatch = aiContent.match(/\*\*Projects?\*\*([\s\S]*?)(?=\*\*|$)/i);
       if (projectsMatch && projectsMatch[1]) {
         const projectText = projectsMatch[1].trim();
+        console.log('📦 Projects section found:', projectText.substring(0, 200));
         
-        // Try to extract first project details
-        const projectLines = projectText.split('\n').filter(line => line.trim());
-        if (projectLines.length > 0) {
-          // Look for project name (usually first non-bullet line or after "Project:")
-          const nameMatch = projectText.match(/(?:Project:|Name:)?\s*([^\n]+)/i);
-          if (nameMatch && nameMatch[1] && !resumeData.projects?.[0]?.name) {
-            const projectName = nameMatch[1].trim().replace(/^:\s*/, '');
-            setValue('projects.0.name', projectName);
+        // Split into individual projects - look for "Project" followed by number or name
+        const projectBlocks = projectText.split(/(?=Project\s*(?:\d+|:))/i).filter(block => block.trim().length > 10);
+        console.log('📦 Found', projectBlocks.length, 'project blocks');
+        
+        // Get current projects from form
+        const currentProjects = resumeData.projects || [];
+        let projectsUpdated = 0;
+        
+        // Process each project block
+        projectBlocks.forEach((block, blockIndex) => {
+          console.log(`\n📦 Processing block ${blockIndex}:`, block.substring(0, 100));
+          
+          // Try to match with existing projects by index or name
+          let targetIndex = blockIndex;
+          
+          // If we have more blocks than projects, skip extra blocks
+          if (targetIndex >= currentProjects.length) return;
+          
+          const project = currentProjects[targetIndex];
+          if (!project) return;
+          
+          console.log(`📦 Updating project ${targetIndex}: ${project.name}`);
+          
+          // Extract description - look for text after "Description:" or after project name
+          const descMatch = block.match(/Description:\s*([^\n]+(?:\n(?!(?:Technologies?|Project|GitHub|Live):)[^\n]+)*)/i);
+          if (descMatch && descMatch[1]) {
+            const description = descMatch[1].trim();
+            if (description && description.length > 20) {
+              console.log('✅ Setting description:', description.substring(0, 50));
+              setValue(`projects.${targetIndex}.description`, description);
+              projectsUpdated++;
+            }
           }
           
-          // Look for description
-          const descMatch = projectText.match(/(?:Description:|Details:)\s*([^\n]+(?:\n(?!(?:Technologies?|Project|Name):)[^\n]+)*)/i);
-          if (descMatch && descMatch[1] && !resumeData.projects?.[0]?.description) {
-            setValue('projects.0.description', descMatch[1].trim());
-          }
-          
-          // Look for technologies
-          const techMatch = projectText.match(/(?:Technologies?|Tech Stack|Stack):\s*([^\n]+)/i);
+          // Extract technologies
+          const techMatch = block.match(/(?:Technologies?|Tech Stack):\s*([^\n]+)/i);
           if (techMatch && techMatch[1]) {
-            const technologies = techMatch[1].trim();
-            setValue('projects.0.technologies', technologies);
+            console.log('✅ Setting technologies:', techMatch[1].trim());
+            setValue(`projects.${targetIndex}.technologies`, techMatch[1].trim());
           }
           
-          // Look for GitHub link
-          const githubMatch = projectText.match(/(?:GitHub|Github|Repository|Repo):\s*(https?:\/\/[^\s]+)/i);
-          if (githubMatch && githubMatch[1] && !resumeData.projects?.[0]?.github) {
-            setValue('projects.0.github', githubMatch[1].trim());
+          // Extract GitHub link (preserve existing)
+          if (!project.github) {
+            const githubMatch = block.match(/GitHub:\s*(https?:\/\/[^\s\n]+)/i);
+            if (githubMatch && githubMatch[1]) {
+              setValue(`projects.${targetIndex}.github`, githubMatch[1].trim());
+            }
           }
           
-          // Look for live link
-          const liveMatch = projectText.match(/(?:Live|Demo|URL|Link):\s*(https?:\/\/[^\s]+)/i);
-          if (liveMatch && liveMatch[1] && !resumeData.projects?.[0]?.link) {
-            setValue('projects.0.link', liveMatch[1].trim());
+          // Extract live link (preserve existing)
+          if (!project.link) {
+            const liveMatch = block.match(/Live:\s*(https?:\/\/[^\s\n]+)/i);
+            if (liveMatch && liveMatch[1]) {
+              setValue(`projects.${targetIndex}.link`, liveMatch[1].trim());
+            }
           }
-          
-          updatedSections.push('Projects');
+        });
+        
+        if (projectsUpdated > 0) {
+          updatedSections.push(`${projectsUpdated} Project(s)`);
         }
       }
       
@@ -212,14 +333,38 @@ export default function ResumeBuilder() {
         }
       }
       
-      // Show success message with updated sections
+      // Show success message with updated sections and undo option
       const sectionsText = updatedSections.length > 0 
         ? updatedSections.join(', ') 
         : 'various sections';
-      toast.success(`Resume enhanced with AI! Updated: ${sectionsText}`);
       
-      // Store AI suggestions to show in modal
-      setAiSuggestions(aiContent);
+      toast.success(
+        (t) => (
+          <div className="flex items-center gap-3">
+            <span>✨ Resume optimized! Updated: {sectionsText}</span>
+            <button
+              onClick={() => {
+                undoEnhancement();
+                toast.dismiss(t.id);
+              }}
+              className="px-3 py-1 bg-white text-indigo-600 rounded hover:bg-gray-100 font-medium text-sm"
+            >
+              Undo
+            </button>
+          </div>
+        ),
+        { duration: 8000 }
+      );
+      
+      // Track AI enhancement
+      trackEvent('ai_enhancement_used', { 
+        type: 'resume',
+        resumeId: id,
+        sectionsUpdated: updatedSections 
+      });
+      
+      // Don't show modal anymore - changes are auto-applied
+      // setAiSuggestions(aiContent);
       
     } catch (error) {
       const errorMsg = error.response?.data?.error || 'AI enhancement failed';
@@ -256,6 +401,12 @@ export default function ResumeBuilder() {
       const filename = `${resumeData.personalInfo.fullName.replace(/\s+/g, '_')}_Resume.pdf`;
       toast.loading('Generating PDF...', { id: 'pdf-download' });
       
+      // Track download event
+      trackEvent('resume_download', { 
+        resumeId: id,
+        template: resumeData.template 
+      });
+      
       // Small delay to ensure DOM is ready
       setTimeout(() => {
         downloadResumePDF(resumeData, filename);
@@ -267,79 +418,7 @@ export default function ResumeBuilder() {
     }
   };
 
-  const handleClearForm = () => {
-    const confirmed = window.confirm(
-      '⚠️ Are you sure you want to clear all form data?\n\nThis action cannot be undone.'
-    );
 
-    if (confirmed) {
-      // Reset the entire form to completely empty state
-      reset({
-        personalInfo: {
-          fullName: '',
-          email: '',
-          phone: '',
-          location: '',
-          linkedin: '',
-          github: '',
-          website: ''
-        },
-        summary: '',
-        experience: [{
-          company: '',
-          position: '',
-          startDate: '',
-          endDate: '',
-          current: false,
-          description: ['']
-        }],
-        education: [{
-          institution: '',
-          degree: '',
-          field: '',
-          startDate: '',
-          endDate: '',
-          gpa: ''
-        }],
-        skills: [{
-          items: ''
-        }],
-        projects: [{
-          name: '',
-          description: '',
-          technologies: '',
-          link: '',
-          github: ''
-        }],
-        certifications: [{
-          name: '',
-          issuer: '',
-          date: '',
-          link: ''
-        }],
-        languages: ['', '', ''],
-        interests: ['', '', ''],
-        volunteer: [{
-          role: '',
-          organization: '',
-          date: ''
-        }]
-      });
-      
-      // Clear AI suggestions
-      setAiSuggestions(null);
-      
-      // Reset resume type
-      setResumeType('experienced');
-      
-      // If editing an existing resume, navigate to new resume page
-      if (id) {
-        navigate('/resume/new');
-      }
-      
-      toast.success('Form cleared successfully!');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
@@ -359,7 +438,7 @@ export default function ResumeBuilder() {
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               <button
                 type="button"
                 onClick={() => setShowPreview(true)}
@@ -370,30 +449,53 @@ export default function ResumeBuilder() {
                 <span className="sm:hidden">View</span>
               </button>
               <button
-                onClick={enhanceWithAI}
-                disabled={enhancing}
-                className="flex items-center gap-2 bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm sm:text-base"
+                type="button"
+                onClick={() => setShowScore(true)}
+                className="flex items-center gap-2 bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 text-sm sm:text-base"
               >
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">{enhancing ? 'Enhancing...' : 'Enhance with AI'}</span>
-                <span className="sm:hidden">AI</span>
+                <Award className="w-4 h-4" />
+                <span className="hidden sm:inline">Check Score</span>
+                <span className="sm:hidden">Score</span>
               </button>
-              {aiSuggestions && (
+              {id && (
                 <button
-                  onClick={() => setAiSuggestions(aiSuggestions)}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  type="button"
+                  onClick={() => setShowVersions(true)}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 text-sm sm:text-base"
                 >
-                  View AI Suggestions
+                  <History className="w-4 h-4" />
+                  <span className="hidden sm:inline">Versions</span>
+                  <span className="sm:hidden">Ver</span>
                 </button>
               )}
               <button
                 type="button"
-                onClick={handleClearForm}
-                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+                onClick={enhanceWithAI}
+                disabled={enhancing}
+                title="AI-powered optimization for 90+ ATS score"
+                className="flex items-center gap-2 bg-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm sm:text-base relative group"
               >
-                <Trash2 className="w-4 h-4" />
-                Clear Form
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">{enhancing ? 'Optimizing for ATS...' : 'Enhance with AI'}</span>
+                <span className="sm:hidden">AI</span>
+                {!enhancing && (
+                  <span className="hidden lg:block absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    Optimize for 90+ ATS Score
+                  </span>
+                )}
               </button>
+              {previousValues && (
+                <button
+                  type="button"
+                  onClick={undoEnhancement}
+                  className="flex items-center gap-2 bg-orange-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-orange-700 text-sm sm:text-base"
+                  title="Undo last AI enhancement"
+                >
+                  <X className="w-4 h-4" />
+                  <span className="hidden sm:inline">Undo AI Changes</span>
+                  <span className="sm:hidden">Undo</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -402,7 +504,7 @@ export default function ResumeBuilder() {
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
                 <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-                  <h2 className="text-xl font-bold">AI Enhancement Suggestions</h2>
+                  <h2 className="text-xl font-bold">✨ ATS-Optimized Resume (90+ Score)</h2>
                   <button
                     onClick={() => setAiSuggestions(null)}
                     className="text-gray-600 hover:text-gray-900"
@@ -411,20 +513,40 @@ export default function ResumeBuilder() {
                   </button>
                 </div>
                 <div className="p-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p className="text-sm text-blue-800">
-                      ✨ <strong>AI Enhancement Applied!</strong> The following sections have been automatically updated:
-                    </p>
-                    <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
-                      <li>Professional Summary</li>
-                      <li>Work Experience (bullet points)</li>
-                      <li>Skills (organized format)</li>
-                      <li>Projects (suggestions)</li>
-                      <li>Education (enhancements)</li>
-                    </ul>
-                    <p className="text-sm text-blue-800 mt-2">
-                      Review the full AI suggestions below and make any adjustments as needed.
-                    </p>
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-purple-900 mb-2">
+                          🎯 AI-Optimized Content Ready (Target: 90+ ATS Score)
+                        </p>
+                        <p className="text-sm text-gray-700 mb-3">
+                          Your resume has been enhanced with:
+                        </p>
+                        <ul className="text-sm text-gray-700 space-y-1 mb-3">
+                          <li>✓ <strong>Strong action verbs</strong> (Engineered, Developed, Implemented)</li>
+                          <li>✓ <strong>Quantifiable metrics</strong> (20% increase, 100K+ users)</li>
+                          <li>✓ <strong>Industry keywords</strong> for ATS compatibility</li>
+                          <li>✓ <strong>Achievement-focused</strong> bullet points</li>
+                          <li>✓ <strong>Technical terms</strong> and tools highlighted</li>
+                        </ul>
+                        <div className="bg-white border border-purple-200 rounded p-3">
+                          <p className="text-sm font-medium text-purple-900 mb-1">✅ Auto-Applied to Your Resume!</p>
+                          <p className="text-xs text-gray-700 mb-2">
+                            The AI has automatically updated your resume fields with optimized content. 
+                          </p>
+                          <p className="text-xs font-medium text-purple-900 mb-1">📋 Next Steps:</p>
+                          <ol className="text-xs text-gray-700 space-y-1 list-decimal list-inside">
+                            <li>Scroll up to review the updated fields</li>
+                            <li>Make any personal adjustments you'd like</li>
+                            <li>Click "Check Score" to see your improved ATS score!</li>
+                            <li>Save your resume when satisfied</li>
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="prose max-w-none">
                     <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-lg">
@@ -638,40 +760,61 @@ export default function ResumeBuilder() {
               <section>
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold">Work Experience</h2>
-                  <span className="text-sm text-indigo-600">⭐ Focus here for experienced professionals</span>
+                  <button
+                    type="button"
+                    onClick={() => appendExperience({ company: '', position: '', startDate: '', endDate: '', description: [''] })}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Experience
+                  </button>
                 </div>
-              <div className="space-y-4">
-                <input
-                  {...register('experience.0.company')}
-                  placeholder="Company Name (leave empty if no experience)"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <input
-                  {...register('experience.0.position')}
-                  placeholder="Position"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <div className="grid md:grid-cols-2 gap-4">
-                  <input
-                    {...register('experience.0.startDate')}
-                    type="month"
-                    placeholder="Start Date"
-                    className="px-4 py-2 border rounded-lg"
-                  />
-                  <input
-                    {...register('experience.0.endDate')}
-                    type="month"
-                    placeholder="End Date"
-                    className="px-4 py-2 border rounded-lg"
-                  />
-                </div>
-                <textarea
-                  {...register('experience.0.description.0')}
-                  rows="3"
-                  placeholder="Job responsibilities and achievements..."
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
+                
+                {experienceFields.map((field, index) => (
+                  <div key={field.id} className="space-y-4 p-4 border rounded-lg mb-4 relative">
+                    {experienceFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeExperience(index)}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        title="Remove this experience"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                    
+                    <input
+                      {...register(`experience.${index}.company`)}
+                      placeholder="Company Name"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register(`experience.${index}.position`)}
+                      placeholder="Position"
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <input
+                        {...register(`experience.${index}.startDate`)}
+                        type="month"
+                        placeholder="Start Date"
+                        className="px-4 py-2 border rounded-lg"
+                      />
+                      <input
+                        {...register(`experience.${index}.endDate`)}
+                        type="month"
+                        placeholder="End Date"
+                        className="px-4 py-2 border rounded-lg"
+                      />
+                    </div>
+                    <textarea
+                      {...register(`experience.${index}.description.0`)}
+                      rows="3"
+                      placeholder="Job responsibilities and achievements..."
+                      className="w-full px-4 py-2 border rounded-lg"
+                    />
+                  </div>
+                ))}
               </section>
             )}
 
@@ -685,71 +828,125 @@ export default function ResumeBuilder() {
                   <span className="text-sm text-gray-500">(Optional)</span>
                 )}
               </div>
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  {resumeType === 'fresher' && (
+                    <p className="text-sm text-yellow-600">⭐ MOST IMPORTANT for freshers!</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => appendProject({ name: '', description: '', technologies: '', link: '', github: '' })}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Project
+                </button>
+              </div>
+              
               {resumeType === 'fresher' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3 text-sm text-yellow-800">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
                   💡 No work experience? Showcase your projects! Include personal projects, college projects, or freelance work.
                 </div>
               )}
-              <div className="space-y-4">
-                <input
-                  {...register('projects.0.name')}
-                  placeholder="Project Name (e.g., E-commerce Website)"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <textarea
-                  {...register('projects.0.description')}
-                  rows="3"
-                  placeholder="Brief description of the project and your role..."
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <input
-                  {...register('projects.0.technologies')}
-                  placeholder="Technologies used (comma separated: React, Node.js, MongoDB)"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <div className="grid md:grid-cols-2 gap-4">
+              
+              {projectFields.map((field, index) => (
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg mb-4 relative">
+                  {projectFields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeProject(index)}
+                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      title="Remove this project"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                  
                   <input
-                    {...register('projects.0.link')}
-                    placeholder="Live Demo URL (optional)"
-                    className="px-4 py-2 border rounded-lg"
+                    {...register(`projects.${index}.name`)}
+                    placeholder="Project Name (e.g., E-commerce Website)"
+                    className="w-full px-4 py-2 border rounded-lg"
+                  />
+                  <textarea
+                    {...register(`projects.${index}.description`)}
+                    rows="3"
+                    placeholder="Brief description of the project and your role..."
+                    className="w-full px-4 py-2 border rounded-lg"
                   />
                   <input
-                    {...register('projects.0.github')}
-                    placeholder="GitHub URL (optional)"
-                    className="px-4 py-2 border rounded-lg"
+                    {...register(`projects.${index}.technologies`)}
+                    placeholder="Technologies used (comma separated: React, Node.js, MongoDB)"
+                    className="w-full px-4 py-2 border rounded-lg"
                   />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <input
+                      {...register(`projects.${index}.link`)}
+                      placeholder="Live Demo URL (optional)"
+                      className="px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register(`projects.${index}.github`)}
+                      placeholder="GitHub URL (optional)"
+                      className="px-4 py-2 border rounded-lg"
+                    />
+                  </div>
                 </div>
-              </div>
+              ))}
             </section>
 
             {/* Certifications */}
             <section>
-              <h2 className="text-xl font-semibold mb-4">Certifications</h2>
-              <div className="space-y-4">
-                <input
-                  {...register('certifications.0.name')}
-                  placeholder="Certification Name (e.g., AWS Certified Developer)"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-                <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">Certifications</h2>
+                <button
+                  type="button"
+                  onClick={() => appendCertification({ name: '', issuer: '', date: '', link: '' })}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Certification
+                </button>
+              </div>
+              
+              {certificationFields.map((field, index) => (
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg mb-4 relative">
+                  {certificationFields.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeCertification(index)}
+                      className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                      title="Remove this certification"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+                  
                   <input
-                    {...register('certifications.0.issuer')}
-                    placeholder="Issuing Organization"
-                    className="px-4 py-2 border rounded-lg"
+                    {...register(`certifications.${index}.name`)}
+                    placeholder="Certification Name (e.g., AWS Certified Developer)"
+                    className="w-full px-4 py-2 border rounded-lg"
                   />
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <input
+                      {...register(`certifications.${index}.issuer`)}
+                      placeholder="Issuing Organization"
+                      className="px-4 py-2 border rounded-lg"
+                    />
+                    <input
+                      {...register(`certifications.${index}.date`)}
+                      type="text"
+                      placeholder="Date (e.g., July 22 to August 13, 2024)"
+                      className="px-4 py-2 border rounded-lg"
+                    />
+                  </div>
                   <input
-                    {...register('certifications.0.date')}
-                    type="text"
-                    placeholder="Date (e.g., July 22 to August 13, 2024)"
-                    className="px-4 py-2 border rounded-lg"
+                    {...register(`certifications.${index}.link`)}
+                    placeholder="Certificate URL (e.g., Coursera certificate link)"
+                    className="w-full px-4 py-2 border rounded-lg"
                   />
                 </div>
-                <input
-                  {...register('certifications.0.link')}
-                  placeholder="Certificate URL (e.g., Coursera certificate link)"
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
+              ))}
             </section>
 
             {/* Education */}
@@ -890,23 +1087,47 @@ export default function ResumeBuilder() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                className="flex items-center gap-1.5 sm:gap-2 bg-indigo-600 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm sm:text-base"
               >
-                <Save className="w-4 h-4" />
-                {loading ? 'Saving...' : 'Save Resume'}
+                <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">{loading ? 'Saving...' : 'Save Resume'}</span>
+                <span className="xs:hidden">{loading ? 'Save' : 'Save'}</span>
               </button>
               <button
                 type="button"
                 onClick={handleDownloadPDF}
-                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700"
+                className="flex items-center gap-1.5 sm:gap-2 bg-green-600 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-green-700 text-sm sm:text-base"
               >
-                <Download className="w-4 h-4" />
-                Download PDF
+                <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Download PDF</span>
+                <span className="xs:hidden">PDF</span>
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      {/* Resume Score Modal */}
+      {showScore && (
+        <ResumeScore
+          resumeData={watch()}
+          onClose={() => setShowScore(false)}
+        />
+      )}
+
+      {/* Version History Modal */}
+      {showVersions && id && (
+        <VersionHistory
+          resumeId={id}
+          currentData={watch()}
+          onRestore={(resumeData) => {
+            Object.keys(resumeData).forEach(key => {
+              setValue(key, resumeData[key]);
+            });
+          }}
+          onClose={() => setShowVersions(false)}
+        />
+      )}
     </div>
   );
 }

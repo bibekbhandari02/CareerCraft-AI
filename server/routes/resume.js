@@ -2,6 +2,8 @@ import express from 'express';
 import { authenticate, checkCredits } from '../middleware/auth.js';
 import Resume from '../models/Resume.js';
 import User from '../models/User.js';
+import { trackEvent } from '../services/analytics.js';
+import { sendCreditLowAlert } from '../services/email.js';
 
 const router = express.Router();
 
@@ -42,9 +44,21 @@ router.post('/', authenticate, checkCredits('resume'), async (req, res) => {
     await resume.save();
 
     // Deduct credit
-    await User.findByIdAndUpdate(req.userId, {
-      $inc: { 'credits.resumeGenerations': -1 }
-    });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { $inc: { 'credits.resumeGenerations': -1 } },
+      { new: true }
+    );
+
+    // Send alert if credits are low (2 or less)
+    if (updatedUser.credits.resumeGenerations <= 2 && updatedUser.credits.resumeGenerations > 0) {
+      sendCreditLowAlert(updatedUser, 'resumeGenerations').catch(err => 
+        console.error('Credit alert failed:', err)
+      );
+    }
+
+    // Track analytics
+    await trackEvent(req.userId, 'resume_created', { resumeId: resume._id }, req);
 
     res.status(201).json({ resume });
   } catch (error) {

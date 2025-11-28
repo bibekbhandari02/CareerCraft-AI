@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticate, checkCredits } from '../middleware/auth.js';
 import Portfolio from '../models/Portfolio.js';
 import User from '../models/User.js';
+import { trackEvent } from '../services/analytics.js';
 
 const router = express.Router();
 
@@ -17,30 +18,62 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
+// Track recent views to prevent duplicates (in-memory cache)
+const recentViews = new Map();
+const VIEW_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
 // Get portfolio by subdomain (public) - MUST come before /:id route
 router.get('/public/:subdomain', async (req, res) => {
   try {
-    console.log('🔍 Looking for portfolio with subdomain:', req.params.subdomain);
-    
     const portfolio = await Portfolio.findOne({ 
       subdomain: req.params.subdomain,
       published: true 
     });
     
     if (!portfolio) {
-      console.log('❌ Portfolio not found or not published');
       return res.status(404).json({ error: 'Portfolio not found' });
     }
-
-    console.log('✅ Portfolio found:', portfolio._id);
     
-    // Increment views
-    portfolio.views += 1;
-    await portfolio.save();
+    // Create a unique key for this view (IP + portfolio ID)
+    const viewKey = `${req.ip || req.headers['x-forwarded-for']}_${portfolio._id}`;
+    const now = Date.now();
+    const lastView = recentViews.get(viewKey);
+    
+    // Only track if this is a new view or cooldown period has passed
+    const shouldTrack = !lastView || (now - lastView) > VIEW_COOLDOWN;
+    
+    if (shouldTrack) {
+      // Increment views
+      portfolio.views += 1;
+      await portfolio.save();
+      
+      // Track portfolio view (for portfolio owner's analytics)
+      if (portfolio.userId) {
+        try {
+          await trackEvent(portfolio.userId, 'portfolio_view', { 
+            portfolioId: portfolio._id,
+            subdomain: req.params.subdomain 
+          }, req);
+          
+          // Update the last view time
+          recentViews.set(viewKey, now);
+          
+          // Clean up old entries (older than cooldown period)
+          for (const [key, time] of recentViews.entries()) {
+            if (now - time > VIEW_COOLDOWN) {
+              recentViews.delete(key);
+            }
+          }
+        } catch (trackError) {
+          console.error('Failed to track portfolio view:', trackError.message);
+          // Don't fail the request if tracking fails
+        }
+      }
+    }
 
     res.json({ portfolio });
   } catch (error) {
-    console.error('❌ Error fetching portfolio:', error);
+    console.error('Error fetching portfolio:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Save, FileText, Download } from 'lucide-react';
+import { ArrowLeft, Sparkles, Save, FileText, Download, Copy } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import api from '../lib/api';
+import api, { trackEvent } from '../lib/api';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 
@@ -71,7 +71,7 @@ export default function CoverLetterBuilder() {
     }
 
     setGenerating(true);
-    const loadingToast = toast.loading('Generating your cover letter with AI...');
+    const loadingToast = toast.loading('🤖 AI is crafting your personalized cover letter...');
     
     try {
       const resumeData = resumes.find(r => r._id === formData.resumeId);
@@ -85,7 +85,25 @@ export default function CoverLetterBuilder() {
       });
 
       setFormData(prev => ({ ...prev, content: data.coverLetter }));
-      toast.success('Cover letter generated!', { id: loadingToast });
+      
+      toast.success('✨ Cover letter generated successfully!', { 
+        id: loadingToast,
+        duration: 4000,
+        icon: '🎉'
+      });
+      
+      // Track AI enhancement
+      trackEvent('ai_enhancement_used', { 
+        type: 'cover_letter',
+        jobTitle: formData.jobTitle,
+        company: formData.companyName 
+      });
+      
+      // Also track cover letter generation for specific stats
+      trackEvent('cover_letter_generated', { 
+        jobTitle: formData.jobTitle,
+        company: formData.companyName 
+      });
 
       // Refresh user credits
       const userRes = await api.get('/user/me');
@@ -95,15 +113,13 @@ export default function CoverLetterBuilder() {
       
       // Handle specific error cases
       if (error.response?.status === 429) {
-        toast.error('Too many requests. Please wait a moment and try again.', { id: loadingToast });
+        toast.error('⏱️ Too many requests. Please wait a moment and try again.', { id: loadingToast });
       } else if (error.response?.status === 403) {
         toast.error(errorMessage, { id: loadingToast });
         navigate('/pricing');
       } else {
-        toast.error(errorMessage, { id: loadingToast });
+        toast.error(`❌ ${errorMessage}`, { id: loadingToast, duration: 5000 });
       }
-      
-      console.error('Generation error:', error);
     } finally {
       setGenerating(false);
     }
@@ -129,6 +145,16 @@ export default function CoverLetterBuilder() {
       toast.error('Failed to save cover letter');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(formData.content);
+      toast.success('Cover letter copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+      console.error('Copy error:', error);
     }
   };
 
@@ -188,6 +214,12 @@ export default function CoverLetterBuilder() {
       // Generate filename
       const fileName = `${formData.jobTitle.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
       
+      // Track download event
+      trackEvent('cover_letter_download', { 
+        jobTitle: formData.jobTitle,
+        company: formData.company 
+      });
+      
       // Save the PDF
       doc.save(fileName);
       toast.success('Cover letter downloaded as PDF!');
@@ -226,6 +258,15 @@ export default function CoverLetterBuilder() {
               <p className="text-sm sm:text-base text-gray-600 mt-1">Create a personalized cover letter with AI</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={handleCopy}
+                disabled={!formData.content}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                title="Copy to clipboard"
+              >
+                <Copy className="w-4 h-4" />
+                <span className="hidden sm:inline">Copy</span>
+              </button>
               <button
                 onClick={handleDownload}
                 disabled={!formData.content}
@@ -326,13 +367,19 @@ export default function CoverLetterBuilder() {
                 <textarea
                   value={formData.customPrompt}
                   onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
-                  placeholder="e.g., Emphasize my leadership skills, mention my passion for sustainability, keep it under 300 words..."
+                  placeholder="e.g., Emphasize my leadership skills, keep it under 300 words, use 2 paragraphs, focus on technical achievements..."
                   rows="3"
                   className="w-full px-3 sm:px-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Give specific instructions to customize your cover letter
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs font-medium text-gray-700">💡 What you can customize:</p>
+                  <div className="text-xs text-gray-600 space-y-0.5">
+                    <p>• <strong>Length:</strong> "Make it smaller/shorter" or "Keep it under 250 words" or "Use 2 paragraphs"</p>
+                    <p>• <strong>Focus:</strong> "Emphasize leadership skills" or "Highlight technical expertise"</p>
+                    <p>• <strong>Tone:</strong> "Make it formal" or "Use enthusiastic tone"</p>
+                    <p>• <strong>Content:</strong> "Mention passion for sustainability" or "Focus on achievements"</p>
+                  </div>
+                </div>
               </div>
 
               <button

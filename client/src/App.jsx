@@ -12,6 +12,7 @@ import PortfolioView from './pages/PortfolioView';
 import CoverLetterBuilder from './pages/CoverLetterBuilder';
 import Pricing from './pages/Pricing';
 import Templates from './pages/Templates';
+import Analytics from './pages/Analytics';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentFailure from './pages/PaymentFailure';
 
@@ -47,6 +48,9 @@ function App() {
         
         <Route path="/dashboard" element={
           <PrivateRoute><Dashboard /></PrivateRoute>
+        } />
+        <Route path="/analytics" element={
+          <PrivateRoute><Analytics /></PrivateRoute>
         } />
         <Route path="/resume/new" element={
           <PrivateRoute><ResumeBuilder /></PrivateRoute>

@@ -8,7 +8,7 @@ const pdfParse = require('pdf-parse');
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent';
 
 // Helper function to call Gemini API with retry logic
-async function callGeminiAPI(prompt, options = {}) {
+export async function callGeminiAPI(prompt, options = {}) {
   const { maxRetries = 2, timeout = 30000 } = options;
   
   // Get API key at runtime (after dotenv has loaded)
@@ -19,7 +19,6 @@ async function callGeminiAPI(prompt, options = {}) {
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  console.log('✅ Using Gemini API key:', GEMINI_API_KEY.substring(0, 20) + '...');
   const url = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
   
   const requestBody = {
@@ -39,12 +38,9 @@ async function callGeminiAPI(prompt, options = {}) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`🔄 Retry attempt ${attempt}/${maxRetries}...`);
         // Exponential backoff: wait 1s, 2s, 4s...
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
       }
-      
-      console.log('🤖 Calling Gemini API...');
       
       // Create abort controller for timeout
       const controller = new AbortController();
@@ -82,12 +78,11 @@ async function callGeminiAPI(prompt, options = {}) {
       }
 
       const generatedText = data.candidates[0].content.parts[0].text;
-      console.log('✅ Gemini API response received');
       
       return generatedText;
       
     } catch (error) {
-      console.error(`❌ Gemini API call failed (attempt ${attempt + 1}):`, error.message);
+      console.error(`Gemini API call failed (attempt ${attempt + 1}):`, error.message);
       lastError = error;
       
       // Don't retry on abort/timeout or client errors
@@ -104,12 +99,18 @@ export const enhanceResume = async (resumeData) => {
   const hasExperience = resumeData.experience?.[0]?.company;
   const hasProjects = resumeData.projects?.[0]?.name;
   
-  const prompt = `You are an expert resume writer specializing in ATS-friendly formatting.
-Your task is to create compelling resume content using action-oriented bullet points with strong verbs, 
-quantified results, and job-specific keywords. Ensure the final output is clean, concise, 
-and optimized for Applicant Tracking Systems.
+  const prompt = `You are an expert ATS resume optimizer with a track record of creating resumes that score 90+ on ATS systems.
 
-${!hasExperience ? 'NOTE: This is a FRESHER/STUDENT resume with NO work experience. Focus heavily on projects, skills, education, and potential.' : ''}
+CRITICAL REQUIREMENTS FOR 90+ ATS SCORE:
+1. Use STRONG action verbs (Spearheaded, Architected, Engineered, Optimized, Implemented)
+2. Include QUANTIFIABLE metrics (%, $, numbers, time saved, users impacted)
+3. Add INDUSTRY-SPECIFIC keywords relevant to the role
+4. Use ACHIEVEMENT-FOCUSED language (not just responsibilities)
+5. Include TECHNICAL TERMS and tools that ATS systems scan for
+6. Ensure proper FORMATTING with clear section headers
+7. Add IMPACT STATEMENTS showing business value
+
+${!hasExperience ? 'NOTE: This is a FRESHER/STUDENT resume. Compensate with strong project descriptions, technical skills, and measurable achievements in academic/personal projects.' : ''}
 
 Resume Data:
 Personal Info: ${JSON.stringify(resumeData.personalInfo)}
@@ -119,49 +120,94 @@ ${hasProjects ? `Projects: ${JSON.stringify(resumeData.projects)}` : ''}
 Skills: ${JSON.stringify(resumeData.skills)}
 Certifications: ${JSON.stringify(resumeData.certifications || [])}
 
+OPTIMIZATION GOAL: Transform this resume to achieve 90+ ATS score by:
+- Adding powerful action verbs
+- Including specific metrics and numbers
+- Incorporating industry keywords
+- Highlighting measurable achievements
+- Emphasizing technical proficiency
+
+CRITICAL OUTPUT FORMAT REQUIREMENTS:
+- Return ONLY plain text markdown
+- Use **Header** for section headers (e.g., **Summary**, **Skills**, **Projects**)
+- DO NOT return JSON format
+- DO NOT wrap in code blocks or backticks
+- Start directly with **Summary**
+
+EXAMPLE OF CORRECT FORMAT:
+**Summary**
+Highly motivated software engineer with 3+ years...
+
+**Skills**
+Frontend: React, TypeScript, Tailwind CSS
+Backend: Node.js, Express, Python
+
 Return in this EXACT format with clear section headers:
 
 **Summary**
-[Professional summary here - ${!hasExperience ? 'emphasize skills, education, and eagerness to learn' : 'highlight experience and achievements'}]
+[Write a powerful 2-3 sentence summary with:
+- Key technical skills and expertise areas
+- Years of experience or academic background
+- Specific achievements or specializations
+- Industry-relevant keywords
+${!hasExperience ? 'For freshers: Emphasize technical skills, academic projects, and learning capabilities' : 'For experienced: Quantify impact and highlight leadership'}]
 
 ${hasExperience ? `**Experience**
-[Enhanced bullet points for work experience, each starting with *]
-* [Bullet point 1]
-* [Bullet point 2]
-* [Bullet point 3]` : ''}
+[Transform each role into ATS-optimized bullet points. Each bullet MUST include:]
+* [ACTION VERB] + [What you did] + [Quantifiable result/impact] + [Technologies used]
+* Example: "Engineered scalable microservices architecture using Node.js and Docker, reducing API response time by 40% and serving 100K+ daily users"
+* Example: "Spearheaded migration to React framework, improving page load speed by 60% and increasing user engagement by 25%"
+* Include metrics: percentages, dollar amounts, time saved, users impacted, performance improvements` : ''}
 
 **Skills**
-[Organize skills by category, one per line]
-Frontend: [list]
-Backend: [list]
-Tools: [list]
+[Organize ALL technical skills by category with specific tools/technologies]
+Frontend: [List specific frameworks, libraries - e.g., React, Vue.js, TypeScript, Tailwind CSS]
+Backend: [List languages, frameworks - e.g., Node.js, Python, Django, Express.js]
+Database: [List database systems - e.g., MongoDB, PostgreSQL, Redis]
+DevOps/Tools: [List tools - e.g., Docker, AWS, Git, CI/CD, Kubernetes]
+[Add more categories as relevant: Testing, Mobile, Cloud, etc.]
 
 ${hasProjects ? `**Projects**
-Project: [Enhanced project name]
-Description: [Enhanced description with impact and results]
-Technologies: [comma-separated list like: React, Node.js, MongoDB]
-${resumeData.projects?.[0]?.github ? 'GitHub: [URL if available]' : ''}
-${resumeData.projects?.[0]?.link ? 'Live: [URL if available]' : ''}` : `**Projects**
-[Suggest 2-3 project ideas they could add based on their skills]
-For each project include:
-Project: [Name]
-Description: [What it does and impact]
-Technologies: [Suggested tech stack]`}
+IMPORTANT: Enhance ALL ${resumeData.projects?.length || 1} projects listed below. For EACH project, provide:
+
+${resumeData.projects?.map((proj, idx) => `
+Project ${idx + 1}: ${proj.name || '[Project Name]'}
+Description: [Write ATS-optimized description with ACTION VERB + impact + metrics. Example: "Engineered full-stack application using React and Node.js, reducing load time by 40% and serving 1000+ users"]
+Technologies: [Comprehensive tech stack: React, Node.js, MongoDB, Express, Redux, JWT, etc.]
+${proj.github ? `GitHub: ${proj.github}` : ''}
+${proj.link ? `Live: ${proj.link}` : ''}
+`).join('\n')}
+
+Format: Use "Project: [Name]" for each project, followed by Description and Technologies on separate lines.` : `**Projects**
+[Suggest 2-3 impressive project ideas based on their skills that would boost ATS score]
+For each project:
+Project: [Professional-sounding name]
+Description: [What it does with measurable impact - include numbers like "handles 1000+ requests/sec" or "reduces processing time by 50%"]
+Technologies: [Comprehensive tech stack with industry-standard tools]`}
 
 **Education**
-[Any enhancements like GPA, achievements, relevant coursework]
+[Enhance with:
+- Degree, Major, University name
+- GPA if strong (3.5+)
+- Relevant coursework with technical keywords
+- Academic achievements, honors, scholarships
+- Technical projects or research]
 
-${!hasExperience ? '**Tips for Freshers**\n[Specific advice to stand out]' : ''}`;
+${!hasExperience ? `**ATS Optimization Tips Applied**
+✓ Added strong action verbs (Engineered, Developed, Implemented)
+✓ Included quantifiable metrics and impact
+✓ Incorporated industry-specific keywords
+✓ Emphasized technical skills and tools
+✓ Structured for ATS parsing
+✓ Highlighted measurable achievements` : ''}`;
 
   try {
     const result = await callGeminiAPI(prompt);
-    console.log('✅ Real Gemini AI response used');
     return result;
   } catch (error) {
-    console.error('❌ Gemini API Error Details:', error);
+    console.error('Gemini API Error:', error);
     // Fallback to mock response in development
     if (process.env.NODE_ENV !== 'production') {
-      console.log('⚠️ Using mock AI response (development mode)');
       return getMockResumeEnhancement(resumeData);
     }
     throw error;
@@ -170,7 +216,6 @@ ${!hasExperience ? '**Tips for Freshers**\n[Specific advice to stand out]' : ''}
 
 export const generateCoverLetter = async (jobTitle, resumeData, companyName = '', hiringManager = '', customPrompt = '') => {
   const companyText = companyName ? ` at ${companyName}` : '';
-  const greeting = 'Dear Hiring Manager';
   
   // Get current date
   const currentDate = new Date().toLocaleDateString('en-US', { 
@@ -188,10 +233,19 @@ export const generateCoverLetter = async (jobTitle, resumeData, companyName = ''
   const linkedin = personalInfo.linkedin || personalInfo.linkedinUrl || '';
   const github = personalInfo.github || personalInfo.githubUrl || '';
   
-  // Check if user wants to remove date
-  const includeDate = !customPrompt?.toLowerCase().includes('remove the date') && 
-                      !customPrompt?.toLowerCase().includes('without date') &&
-                      !customPrompt?.toLowerCase().includes('no date');
+  // Analyze custom prompt for specific instructions
+  const promptLower = customPrompt?.toLowerCase() || '';
+  
+  // Check for date preference
+  const includeDate = !promptLower.includes('remove the date') && 
+                      !promptLower.includes('without date') &&
+                      !promptLower.includes('no date');
+  
+  // Determine greeting
+  let greeting = 'Dear Hiring Manager,';
+  if (hiringManager && !promptLower.includes('no name') && !promptLower.includes('generic')) {
+    greeting = `Dear ${hiringManager},`;
+  }
   
   // Build header
   let header = `${fullName}\n${phone} | ${email}\n${location}`;
@@ -214,75 +268,160 @@ export const generateCoverLetter = async (jobTitle, resumeData, companyName = ''
     header += '\n';
   }
   
-  // Determine paragraph count from custom prompt or use default
-  let paragraphInstruction = 'Write 3 concise, impactful paragraphs';
+  // Analyze prompt for specific requirements
+  let paragraphCount = 3;
+  let wordLimit = null;
+  let tone = 'professional and enthusiastic';
+  let focusAreas = [];
+  
   if (customPrompt) {
-    if (customPrompt.toLowerCase().includes('2 paragraph')) {
-      paragraphInstruction = 'Write 2 concise, impactful paragraphs';
-    } else if (customPrompt.toLowerCase().includes('1 paragraph')) {
-      paragraphInstruction = 'Write 1 concise, impactful paragraph';
-    } else if (customPrompt.toLowerCase().includes('4 paragraph')) {
-      paragraphInstruction = 'Write 4 concise, impactful paragraphs';
+    // Paragraph count
+    if (promptLower.includes('1 paragraph')) paragraphCount = 1;
+    else if (promptLower.includes('2 paragraph')) paragraphCount = 2;
+    else if (promptLower.includes('4 paragraph')) paragraphCount = 4;
+    else if (promptLower.includes('5 paragraph')) paragraphCount = 5;
+    
+    // Word limit - specific numbers
+    const wordMatch = promptLower.match(/(\d+)\s*words?/);
+    if (wordMatch) wordLimit = parseInt(wordMatch[1]);
+    
+    // Word limit - relative terms
+    if (promptLower.includes('smaller') || promptLower.includes('shorter') || promptLower.includes('more concise')) {
+      wordLimit = 200; // Short version
+      paragraphCount = 2;
+    } else if (promptLower.includes('longer') || promptLower.includes('more detailed') || promptLower.includes('comprehensive')) {
+      wordLimit = 400; // Longer version
+      paragraphCount = 4;
+    } else if (promptLower.includes('brief') || promptLower.includes('quick')) {
+      wordLimit = 150; // Very brief
+      paragraphCount = 1;
     }
+    
+    // Tone
+    if (promptLower.includes('formal')) tone = 'formal and professional';
+    else if (promptLower.includes('casual') || promptLower.includes('friendly')) tone = 'friendly yet professional';
+    else if (promptLower.includes('enthusiastic') || promptLower.includes('passionate')) tone = 'enthusiastic and passionate';
+    else if (promptLower.includes('concise') || promptLower.includes('brief')) tone = 'concise and direct';
+    
+    // Focus areas
+    if (promptLower.includes('leadership')) focusAreas.push('leadership experience and team management');
+    if (promptLower.includes('technical') || promptLower.includes('tech')) focusAreas.push('technical skills and expertise');
+    if (promptLower.includes('achievement') || promptLower.includes('accomplishment')) focusAreas.push('quantifiable achievements and results');
+    if (promptLower.includes('passion') || promptLower.includes('motivation')) focusAreas.push('passion and motivation for the role');
+    if (promptLower.includes('culture fit') || promptLower.includes('values')) focusAreas.push('cultural fit and shared values');
+    if (promptLower.includes('innovation') || promptLower.includes('creative')) focusAreas.push('innovation and creative problem-solving');
   }
   
-  // Create a condensed version of resume data to reduce token usage
-  const condensedResume = {
+  // Extract comprehensive resume data
+  const resumeAnalysis = {
     name: fullName,
-    experience: resumeData.experience?.slice(0, 2).map(exp => ({
+    currentRole: resumeData.experience?.[0]?.position || 'Professional',
+    yearsOfExperience: resumeData.experience?.length || 0,
+    recentExperience: resumeData.experience?.slice(0, 3).map(exp => ({
       position: exp.position,
       company: exp.company,
-      description: exp.description?.substring(0, 200) // Limit description length
+      description: exp.description?.substring(0, 300),
+      achievements: exp.description?.match(/\d+%|\$\d+|increased|improved|reduced|led|managed/gi) || []
     })),
-    skills: resumeData.skills?.slice(0, 3).map(s => s.items?.join(', ')).join('; '),
+    topSkills: resumeData.skills?.slice(0, 5).map(s => ({
+      category: s.category,
+      items: Array.isArray(s.items) ? s.items : s.items?.split(',').map(i => i.trim())
+    })),
     education: resumeData.education?.[0] ? {
       degree: resumeData.education[0].degree,
-      institution: resumeData.education[0].institution
-    } : null
+      institution: resumeData.education[0].institution,
+      graduationDate: resumeData.education[0].graduationDate
+    } : null,
+    projects: resumeData.projects?.slice(0, 2).map(p => ({
+      name: p.name,
+      description: p.description?.substring(0, 150)
+    })),
+    certifications: resumeData.certifications?.slice(0, 3).map(c => c.name)
   };
   
-  const prompt = `You are a professional cover letter writer.
+  const prompt = `You are an expert cover letter writer who creates compelling, personalized cover letters that get interviews.
 
-Write a professional cover letter for the position: ${jobTitle}${companyText}.
+JOB APPLICATION:
+Position: ${jobTitle}${companyText}
+${hiringManager ? `Hiring Manager: ${hiringManager}` : ''}
 
-Candidate Background:
-- Name: ${condensedResume.name}
-- Recent Experience: ${JSON.stringify(condensedResume.experience)}
-- Key Skills: ${condensedResume.skills}
-- Education: ${JSON.stringify(condensedResume.education)}
+CANDIDATE PROFILE:
+Name: ${resumeAnalysis.name}
+Current Role: ${resumeAnalysis.currentRole}
+Years of Experience: ${resumeAnalysis.yearsOfExperience}+
 
-${customPrompt ? `\nUSER'S CUSTOM INSTRUCTIONS (PRIORITY):\n${customPrompt}\n\nFollow these custom instructions carefully while maintaining professional quality.\n` : ''}
+Recent Experience:
+${resumeAnalysis.recentExperience?.map((exp, i) => `${i + 1}. ${exp.position} at ${exp.company}
+   - ${exp.description}
+   - Key achievements: ${exp.achievements.join(', ') || 'Multiple accomplishments'}`).join('\n')}
 
-CRITICAL FORMAT REQUIREMENTS:
-- DO NOT include any header information (name, contact, date, recipient name, etc.) - this will be added automatically
-- You MUST start with EXACTLY this greeting: "Dear Hiring Manager,"
-- DO NOT use any other greeting like "Dear [Name]," or "Dear Sir/Madam,"
-- ${paragraphInstruction}
-- IMPORTANT: Use actual line breaks (press Enter twice) between paragraphs, NOT the text "\\n"
-- Add a blank line after the greeting
-- Add a blank line before "Sincerely,"
-- Be personalized and enthusiastic
-- Make it ATS friendly
-- Use professional tone
-- Highlight relevant experience and skills
-- End with "Sincerely," followed by ONLY the candidate's name (no contact info)
+Top Skills:
+${resumeAnalysis.topSkills?.map(s => `- ${s.category}: ${s.items?.join(', ')}`).join('\n')}
 
-EXAMPLE FORMAT (with actual line breaks):
-Dear Hiring Manager,
+Education: ${resumeAnalysis.education ? `${resumeAnalysis.education.degree} from ${resumeAnalysis.education.institution}` : 'Not specified'}
 
-[First paragraph - write actual content here]
+${resumeAnalysis.projects?.length > 0 ? `Notable Projects:\n${resumeAnalysis.projects.map(p => `- ${p.name}: ${p.description}`).join('\n')}` : ''}
 
-[Second paragraph - write actual content here]
+${resumeAnalysis.certifications?.length > 0 ? `Certifications: ${resumeAnalysis.certifications.join(', ')}` : ''}
 
-[Third paragraph - write actual content here]
+${customPrompt ? `\n🎯 CUSTOM INSTRUCTIONS (HIGHEST PRIORITY):\n${customPrompt}\n\nFollow these instructions precisely while maintaining professional quality.\n` : ''}
 
+WRITING REQUIREMENTS:
+
+1. STRUCTURE:
+   - Write EXACTLY ${paragraphCount} paragraph${paragraphCount > 1 ? 's' : ''} (body only, excluding greeting and closing)
+   ${wordLimit ? `- Keep total length around ${wordLimit} words` : '- Keep it concise and impactful (250-350 words ideal)'}
+   - Use ${tone} tone throughout
+
+2. CONTENT FOCUS:
+   ${focusAreas.length > 0 ? `- Emphasize: ${focusAreas.join(', ')}` : '- Highlight relevant experience, skills, and enthusiasm for the role'}
+   - Include specific examples and achievements from their background
+   - Show genuine interest in the company and position
+   - Demonstrate value they'll bring to the role
+   - Use quantifiable results when possible (percentages, numbers, impact)
+
+3. PARAGRAPH STRUCTURE (for ${paragraphCount} paragraphs):
+   ${paragraphCount === 1 ? `- Single powerful paragraph covering: interest in role, key qualifications, and enthusiasm` : ''}
+   ${paragraphCount === 2 ? `- Paragraph 1: Express interest and highlight 2-3 key qualifications
+   - Paragraph 2: Demonstrate value and express enthusiasm for next steps` : ''}
+   ${paragraphCount === 3 ? `- Paragraph 1: Strong opening expressing interest and mentioning 1-2 key qualifications
+   - Paragraph 2: Detailed examples of relevant experience and achievements
+   - Paragraph 3: Express enthusiasm, cultural fit, and call to action` : ''}
+   ${paragraphCount >= 4 ? `- Paragraph 1: Compelling opening and interest in the role
+   - Paragraph 2: Relevant experience and technical skills
+   - Paragraph 3: Achievements and impact with specific examples
+   - Paragraph 4: Cultural fit, enthusiasm, and call to action` : ''}
+
+4. FORMAT REQUIREMENTS:
+   - DO NOT include header (name, contact, date) - this is added automatically
+   - Start with: "${greeting}"
+   - Add blank line after greeting
+   - Add blank line between each paragraph
+   - Add blank line before closing
+   - End with: "Sincerely,\n${fullName}"
+   - Use actual line breaks, NOT literal "\\n" text
+
+5. QUALITY STANDARDS:
+   - ATS-friendly language with relevant keywords
+   - Professional yet personable tone
+   - No clichés or generic statements
+   - Specific to this candidate and role
+   - Compelling and memorable
+   - Action-oriented language
+   - Shows research/knowledge about the role
+
+EXAMPLE FORMAT:
+${greeting}
+
+[Paragraph 1: Compelling opening with specific qualifications]
+
+[Paragraph 2: Detailed experience and achievements]
+
+${paragraphCount >= 3 ? '[Paragraph 3: Value proposition and enthusiasm]\n' : ''}${paragraphCount >= 4 ? '[Paragraph 4: Cultural fit and call to action]\n' : ''}
 Sincerely,
 ${fullName}
 
-IMPORTANT: 
-1. Use EXACTLY "Dear Hiring Manager," as the greeting - no other variation
-2. Use real line breaks in your response, not the literal text "\\n"
-3. The letter should be ready to send - professional, polished, and compelling with proper paragraph spacing.`;
+Write a cover letter that will make the hiring manager want to interview this candidate immediately!`;
 
   try {
     let letterBody = await callGeminiAPI(prompt, { timeout: 30000, maxRetries: 2 });
@@ -314,60 +453,107 @@ ${fullName}`;
 };
 
 export const generatePortfolioContent = async (userData, customPrompt = '') => {
-  let prompt = `You are an expert portfolio content writer.
+  // Analyze the user's request to understand intent
+  const hasSpecificRequest = customPrompt && customPrompt.trim().length > 0;
+  
+  // Extract current data for context
+  const currentHero = userData?.content?.hero || {};
+  const currentAbout = userData?.content?.about || '';
+  const currentSkills = userData?.content?.skills || [];
+  const currentProjects = userData?.content?.projects || [];
+  
+  let prompt = `You are an expert portfolio content writer and AI assistant with the ability to understand and execute specific user requests.
 
-Generate professional portfolio content based on the user's information.`;
+CURRENT PORTFOLIO DATA:
+Hero: ${JSON.stringify(currentHero)}
+About: ${currentAbout}
+Skills: ${JSON.stringify(currentSkills)}
+Projects: ${JSON.stringify(currentProjects)}
 
-  if (customPrompt) {
-    prompt += `\n\nUser's Request: "${customPrompt}"\n\nCurrent Data: ${JSON.stringify(userData)}\n\nGenerate content that fulfills their request while maintaining professional quality.`;
-  } else {
-    prompt += `\n\nUser Data: ${JSON.stringify(userData)}\n\nEnhance and improve their portfolio content.`;
-  }
+${hasSpecificRequest ? `
+USER'S REQUEST: "${customPrompt}"
 
-  prompt += `
+CRITICAL TASK ANALYSIS:
+1. READ the user's request carefully
+2. UNDERSTAND what they want:
+   - ADD = append new items to existing content
+   - CREATE = generate new items
+   - IMPROVE/ENHANCE = modify existing content
+   - REMOVE = delete specific items
+3. EXECUTE the request precisely
+4. PRESERVE all existing content unless specifically asked to change it
 
-Return ONLY a valid JSON object (no markdown, no code blocks) in this EXACT format:
+EXAMPLES:
+Request: "Add React and TypeScript to my skills"
+→ Keep ALL existing skills, ADD React and TypeScript to appropriate category
+
+Request: "Create a project about e-commerce"  
+→ Keep ALL existing projects, ADD 1 new e-commerce project
+
+Request: "Add 3 more web development projects"
+→ Keep ALL existing projects, ADD 3 new web development projects
+
+Request: "Make my about section more professional"
+→ Keep hero and all other sections, ONLY rewrite about section
+
+Request: "Improve project descriptions"
+→ Keep all projects, ONLY enhance their descriptions
+` : `
+TASK: Generate professional portfolio content. If sections are empty, create compelling content. If sections have content, enhance it.
+`}
+
+CRITICAL OUTPUT REQUIREMENTS:
+1. Return ONLY valid JSON (no markdown, no code blocks, no backticks)
+2. Start directly with { and end with }
+3. Use this EXACT structure:
+
 {
   "hero": {
-    "title": "Full Name",
-    "subtitle": "Professional Title (e.g., Full Stack Developer, UI/UX Designer)",
-    "description": "Compelling 2-3 sentence introduction highlighting expertise and passion"
+    "title": "${currentHero.title || 'Your Name'}",
+    "subtitle": "${currentHero.subtitle || 'Professional Title'}",
+    "description": "${currentHero.description || 'Brief introduction'}"
   },
-  "about": "A concise 2 paragraph about section. First paragraph: 2-3 sentences about background and expertise. Second paragraph: 2-3 sentences about passion and what drives them. Keep it professional and impactful.",
+  "about": "2-3 paragraph about section",
   "skills": [
     {
-      "category": "Frontend Development",
-      "items": ["React", "Vue.js", "TypeScript", "Tailwind CSS"]
-    },
-    {
-      "category": "Backend Development",
-      "items": ["Node.js", "Express", "MongoDB", "PostgreSQL"]
-    },
-    {
-      "category": "Tools & Others",
-      "items": ["Git", "Docker", "AWS", "CI/CD"]
+      "category": "Category Name",
+      "items": ["skill1", "skill2", "skill3"]
     }
   ],
   "projects": [
     {
       "name": "Project Name",
-      "description": "Concise description of the project (2-3 sentences max). Focus on key features and impact.",
-      "technologies": ["React", "Node.js", "MongoDB"],
+      "description": "2-3 sentence description focusing on impact and features",
+      "technologies": ["tech1", "tech2"],
       "liveLink": "",
       "githubLink": ""
     }
   ]
 }
 
-Make the content:
-- CONCISE and to the point (no long paragraphs)
-- Professional yet personable
-- Achievement-focused with specific examples
-- Tailored to their field/industry
-- Include 2-3 impressive project ideas if no projects provided`;
+EXECUTION RULES:
+${hasSpecificRequest ? `
+- If request mentions "add" or "create": KEEP all existing items + ADD new ones
+- If request mentions "improve" or "enhance": MODIFY only the mentioned section
+- If request mentions specific skills/projects: ADD them to existing list
+- If request mentions a number (e.g., "3 more projects"): ADD exactly that many
+- ALWAYS preserve existing content unless explicitly asked to change it
+` : `
+- If sections are empty, generate professional content
+- If sections have content, enhance and improve it
+- Keep it concise and impactful
+`}
+
+CONTENT GUIDELINES:
+- About: 2-3 paragraphs max, professional yet personable
+- Skills: Organize by category (Frontend, Backend, Tools, etc.)
+- Projects: 2-3 sentences each, focus on impact and technologies
+- Be specific and achievement-focused
+- Use professional language`;
 
   try {
     const result = await callGeminiAPI(prompt);
+    
     // Clean up the response - remove markdown code blocks if present
     let cleanedResult = result.trim();
     if (cleanedResult.startsWith('```json')) {
@@ -378,9 +564,11 @@ Make the content:
     
     // Parse to validate JSON
     const parsed = JSON.parse(cleanedResult);
+    
     return parsed;
   } catch (error) {
-    console.error('Portfolio generation error:', error);
+    console.error('Portfolio generation error:', error.message);
+    
     if (process.env.NODE_ENV !== 'production') {
       return {
         hero: {
@@ -459,16 +647,12 @@ export const parseResumeFromFile = async (file) => {
     // Extract text based on file type
     if (file.mimetype === 'application/pdf') {
       // Parse PDF
-      console.log('📄 Parsing PDF file...');
       const pdfData = await pdfParse(file.buffer);
       extractedText = pdfData.text;
-      console.log('✅ PDF text extracted:', extractedText.substring(0, 200) + '...');
     } else if (file.mimetype.includes('word')) {
       // Parse Word document
-      console.log('📝 Parsing Word document...');
       const result = await mammoth.extractRawText({ buffer: file.buffer });
       extractedText = result.value;
-      console.log('✅ Word text extracted:', extractedText.substring(0, 200) + '...');
     } else {
       throw new Error('Unsupported file type');
     }
