@@ -108,6 +108,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Keep-alive endpoint for preventing cold starts
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);

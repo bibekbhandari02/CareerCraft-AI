@@ -85,4 +85,8 @@ const portfolioSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Add indexes for better query performance
+portfolioSchema.index({ userId: 1 });
+portfolioSchema.index({ subdomain: 1, published: 1 });
+
 export default mongoose.model('Portfolio', portfolioSchema);

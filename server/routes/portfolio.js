@@ -8,7 +8,9 @@ const router = express.Router();
 // Get user's portfolios
 router.get('/', authenticate, async (req, res) => {
   try {
-    const portfolios = await Portfolio.find({ userId: req.userId });
+    const portfolios = await Portfolio.find({ userId: req.userId })
+      .select('_id userId subdomain views updatedAt')
+      .lean();
     res.json({ portfolios });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

@@ -8,7 +8,10 @@ const router = express.Router();
 // Get all resumes for user
 router.get('/', authenticate, async (req, res) => {
   try {
-    const resumes = await Resume.find({ userId: req.userId }).sort({ updatedAt: -1 });
+    const resumes = await Resume.find({ userId: req.userId })
+      .sort({ updatedAt: -1 })
+      .select('_id userId title template personalInfo updatedAt')
+      .lean();
     res.json({ resumes });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });

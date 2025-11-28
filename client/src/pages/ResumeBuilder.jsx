@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ export default function ResumeBuilder() {
   const [resumeType, setResumeType] = useState('experienced'); // 'experienced' or 'fresher'
   const [selectedTemplate, setSelectedTemplate] = useState('professional');
   const { register, handleSubmit, setValue, watch, reset } = useForm();
+  const templateToastShown = useRef(false);
 
   // Map template IDs to display names
   const getTemplateDisplayName = (templateId) => {
@@ -41,9 +42,10 @@ export default function ResumeBuilder() {
     } else {
       // Check if template is specified in URL
       const templateParam = searchParams.get('template');
-      if (templateParam) {
+      if (templateParam && !templateToastShown.current) {
         setSelectedTemplate(templateParam);
         toast.success(`Using ${templateParam} template!`);
+        templateToastShown.current = true;
       }
     }
   }, [id, searchParams]);

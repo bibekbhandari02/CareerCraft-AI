@@ -8,7 +8,9 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const coverLetters = await CoverLetter.find({ user: req.user.id })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .select('_id user jobTitle companyName updatedAt')
+      .lean();
     res.json({ coverLetters });
   } catch (error) {
     res.status(500).json({ error: error.message });

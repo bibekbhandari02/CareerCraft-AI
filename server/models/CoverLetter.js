@@ -24,4 +24,7 @@ const coverLetterSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Add indexes for better query performance
+coverLetterSchema.index({ user: 1, updatedAt: -1 });
+
 export default mongoose.model('CoverLetter', coverLetterSchema);

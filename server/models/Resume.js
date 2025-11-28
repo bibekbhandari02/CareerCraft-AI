@@ -71,4 +71,7 @@ const resumeSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Add indexes for better query performance
+resumeSchema.index({ userId: 1, updatedAt: -1 });
+
 export default mongoose.model('Resume', resumeSchema);
