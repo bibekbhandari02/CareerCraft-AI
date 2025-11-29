@@ -114,21 +114,17 @@ export default function JobAnalyzer() {
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 max-w-7xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            Back to Dashboard
-          </button>
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="p-2 sm:p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg sm:rounded-xl flex-shrink-0">
-              <Target className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-            </div>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-gray-600 hover:text-gray-900 p-1"
+            >
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Job Description Analyzer</h1>
-              <p className="text-xs sm:text-sm lg:text-base text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">
-                Analyze how well your resume matches a job and get AI-powered tailoring
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Job Analyzer</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-0.5 sm:mt-1 line-clamp-2">
+                AI-powered job matching & resume tailoring
               </p>
             </div>
           </div>
@@ -150,9 +146,9 @@ export default function JobAnalyzer() {
 
 Example:
 We are looking for a Senior Software Engineer with 5+ years of experience in React, Node.js, and AWS. The ideal candidate will have strong problem-solving skills and experience with microservices architecture..."
-                className="w-full h-64 sm:h-80 lg:h-96 px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-xs sm:text-sm"
+                className="w-full h-64 sm:h-80 lg:h-96 px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm sm:text-base"
               />
-              <p className="text-xs sm:text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 mt-2">
                 Minimum 50 characters required
               </p>
             </div>
@@ -167,10 +163,10 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
               {resumes.length === 0 ? (
                 <div className="text-center py-8 sm:py-12">
                   <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
-                  <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">No resumes found</p>
+                  <p className="text-base sm:text-lg text-gray-600 mb-3 sm:mb-4">No resumes found</p>
                   <button
                     onClick={() => navigate('/resume/new')}
-                    className="px-4 sm:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm sm:text-base"
+                    className="px-4 sm:px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-base"
                   >
                     Create Resume
                   </button>
@@ -189,13 +185,13 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm sm:text-base truncate">
+                          <h3 className="font-semibold text-base sm:text-lg truncate">
                             {resume.personalInfo?.fullName || 'Untitled Resume'}
                           </h3>
-                          <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
+                          <p className="text-sm text-gray-600 mt-0.5 sm:mt-1 truncate">
                             {resume.template === 'classic' ? 'ATS-Friendly' : resume.template?.charAt(0).toUpperCase() + resume.template?.slice(1)} Template
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5 sm:mt-1">
+                          <p className="text-sm text-gray-500 mt-0.5 sm:mt-1">
                             Updated {new Date(resume.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -243,7 +239,7 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                   </div>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">{getScoreLabel(matchAnalysis.overallScore)}</h2>
-                <p className="text-sm sm:text-base text-gray-600 px-2">
+                <p className="text-base sm:text-lg text-gray-600 px-2">
                   Your resume matches {matchAnalysis.overallScore}% of the job requirements
                 </p>
               </div>
@@ -293,10 +289,10 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                 <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                   {matchAnalysis.missingSkills.required.technical.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-2 text-sm sm:text-base">Technical Skills</h4>
+                      <h4 className="font-medium mb-2 text-base">Technical Skills</h4>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {matchAnalysis.missingSkills.required.technical.map((skill, index) => (
-                          <span key={index} className="px-2 sm:px-3 py-1 bg-red-50 text-red-700 rounded-full text-xs sm:text-sm">
+                          <span key={index} className="px-2 sm:px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm">
                             {skill}
                           </span>
                         ))}
@@ -305,10 +301,10 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                   )}
                   {matchAnalysis.missingSkills.required.tools.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-2 text-sm sm:text-base">Tools & Software</h4>
+                      <h4 className="font-medium mb-2 text-base">Tools & Software</h4>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {matchAnalysis.missingSkills.required.tools.map((skill, index) => (
-                          <span key={index} className="px-2 sm:px-3 py-1 bg-red-50 text-red-700 rounded-full text-xs sm:text-sm">
+                          <span key={index} className="px-2 sm:px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm">
                             {skill}
                           </span>
                         ))}
@@ -327,10 +323,10 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                 <div className="grid md:grid-cols-2 gap-3 sm:gap-4">
                   {matchAnalysis.matchedSkills.technical.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-2 text-sm sm:text-base">Technical Skills</h4>
+                      <h4 className="font-medium mb-2 text-base">Technical Skills</h4>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {matchAnalysis.matchedSkills.technical.map((skill, index) => (
-                          <span key={index} className="px-2 sm:px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs sm:text-sm">
+                          <span key={index} className="px-2 sm:px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm">
                             {skill}
                           </span>
                         ))}
@@ -339,10 +335,10 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                   )}
                   {matchAnalysis.matchedSkills.tools.length > 0 && (
                     <div>
-                      <h4 className="font-medium mb-2 text-sm sm:text-base">Tools & Software</h4>
+                      <h4 className="font-medium mb-2 text-base">Tools & Software</h4>
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {matchAnalysis.matchedSkills.tools.map((skill, index) => (
-                          <span key={index} className="px-2 sm:px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs sm:text-sm">
+                          <span key={index} className="px-2 sm:px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm">
                             {skill}
                           </span>
                         ))}
@@ -374,7 +370,7 @@ We are looking for a Senior Software Engineer with 5+ years of experience in Rea
                   <span className="truncate">{tailoring ? 'Tailoring...' : 'Update Current Resume'}</span>
                 </button>
               </div>
-              <p className="text-xs sm:text-sm text-gray-500 mt-2 sm:mt-3 text-center px-2">
+              <p className="text-sm text-gray-500 mt-2 sm:mt-3 text-center px-2">
                 AI will optimize your resume to match this job description
               </p>
             </div>
@@ -404,7 +400,7 @@ function ScoreCard({ title, score, icon }) {
   return (
     <div className="bg-white rounded-lg shadow p-3 sm:p-4 lg:p-6">
       <div className="flex items-center justify-between mb-1 sm:mb-2">
-        <span className="text-xs sm:text-sm font-medium text-gray-600 line-clamp-2 pr-1">{title}</span>
+        <span className="text-sm font-medium text-gray-600 line-clamp-2 pr-1">{title}</span>
         <div className="flex-shrink-0">{icon}</div>
       </div>
       <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${getColor(score)}`}>
@@ -446,8 +442,8 @@ function RecommendationCard({ recommendation }) {
       <div className="flex items-start gap-2 sm:gap-3">
         {getIcon(recommendation.type)}
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm sm:text-base">{recommendation.message}</p>
-          <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">{recommendation.action}</p>
+          <p className="font-medium text-base">{recommendation.message}</p>
+          <p className="text-sm text-gray-600 mt-0.5 sm:mt-1">{recommendation.action}</p>
         </div>
       </div>
     </div>

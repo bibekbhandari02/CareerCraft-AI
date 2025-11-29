@@ -843,7 +843,7 @@ export default function ResumeBuilder() {
                   <button
                     type="button"
                     onClick={() => appendExperience({ company: '', position: '', startDate: '', endDate: '', description: [''] })}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md transition-all hover:scale-105"
+                    className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm"
                   >
                     <Plus className="w-4 h-4" />
                     <span className="hidden sm:inline">Add Experience</span>
@@ -901,24 +901,14 @@ export default function ResumeBuilder() {
 
             {/* Projects - Important for freshers */}
             <section className={resumeType === 'fresher' ? 'ring-2 ring-purple-200 rounded-lg p-4 bg-purple-50' : ''}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Projects</h2>
-                {resumeType === 'fresher' ? (
-                  <span className="hidden sm:inline text-sm text-purple-600 font-semibold">⭐ MOST IMPORTANT for freshers!</span>
-                ) : (
-                  <span className="text-sm text-gray-500">(Optional)</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  {resumeType === 'fresher' && (
-                    <p className="text-sm text-yellow-600">⭐ MOST IMPORTANT for freshers!</p>
-                  )}
-                </div>
+              <div className="flex justify-between items-start mb-2">
+                <h2 className="text-xl font-semibold">
+                  Projects {resumeType !== 'fresher' && <span className="text-sm text-gray-500 ml-2">(Optional)</span>}
+                </h2>
                 <button
                   type="button"
                   onClick={() => appendProject({ name: '', description: '', technologies: '', link: '', github: '' })}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline">Add Project</span>
@@ -927,8 +917,11 @@ export default function ResumeBuilder() {
               </div>
               
               {resumeType === 'fresher' && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
-                  💡 No work experience? Showcase your projects! Include personal projects, college projects, or freelance work.
+                <div className="mb-4">
+                  <p className="text-sm text-purple-600 font-semibold mb-2">⭐ MOST IMPORTANT for freshers!</p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                    💡 No work experience? Showcase your projects! Include personal projects, college projects, or freelance work.
+                  </div>
                 </div>
               )}
               
@@ -987,7 +980,7 @@ export default function ResumeBuilder() {
                 <button
                   type="button"
                   onClick={() => appendCertification({ name: '', issuer: '', date: '', link: '' })}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline">Add Certification</span>
@@ -1096,10 +1089,10 @@ export default function ResumeBuilder() {
                       setValue('skills', [...currentSkills, { category: '', items: '' }]);
                     }
                   }}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Add Skill Category</span>
+                  <span className="hidden sm:inline">Add Skill</span>
                   <span className="sm:hidden">Add</span>
                 </button>
               </div>

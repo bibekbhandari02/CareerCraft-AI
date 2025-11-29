@@ -7,7 +7,7 @@ export default function Analytics() {
   const { user } = useAuthStore();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState(30);
+  const [timeRange, setTimeRange] = useState(7);
 
   useEffect(() => {
     fetchAnalytics();

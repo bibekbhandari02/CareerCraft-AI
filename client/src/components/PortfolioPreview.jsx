@@ -65,14 +65,12 @@ import {
 import { TbBrandReactNative, TbBrandCSharp } from 'react-icons/tb';
 
 export default function PortfolioPreview({ data }) {
-  const { content, profileImageUrl, logoUrl, logoText, colorTheme } = data;
+  const { content, profileImageUrl, logoUrl, logoText, colorTheme } = data || {};
   const themeColors = getThemeColors(colorTheme || 'purple-pink');
-
-  if (!content) return null;
   
-  const displayLogoText = logoText || content.hero?.title?.split(' ')[0] || 'Logo';
+  const displayLogoText = logoText || content?.hero?.title?.split(' ')[0] || 'Logo';
   const firstLetter = displayLogoText[0]?.toUpperCase() || 'L';
-  const restOfWord = displayLogoText.slice(1)?.toLowerCase() || 'ogo';
+  const restOfWord = displayLogoText.slice(1) || 'ogo';
 
   const getSkillIcon = (skill) => {
     const skillLower = skill.toLowerCase();
@@ -187,11 +185,11 @@ export default function PortfolioPreview({ data }) {
               className="h-6 w-auto"
             >
               <defs>
-                <linearGradient id="previewLogoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" style={{ stopColor: 'var(--theme-primary)', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: 'var(--theme-secondary)', stopOpacity: 1 }} />
+                <linearGradient id={`previewLogoGradient-${Math.random()}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style={{ stopColor: themeColors.primary, stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: themeColors.secondary, stopOpacity: 1 }} />
                 </linearGradient>
-                <filter id="previewGlow">
+                <filter id={`previewGlow-${Math.random()}`}>
                   <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
                   <feMerge>
                     <feMergeNode in="coloredBlur"/>
@@ -204,9 +202,8 @@ export default function PortfolioPreview({ data }) {
                 y="22" 
                 fontSize="22" 
                 fontWeight="800" 
-                fill="url(#previewLogoGradient)"
+                fill={themeColors.primary}
                 fontFamily="system-ui, -apple-system, sans-serif"
-                filter="url(#previewGlow)"
                 letterSpacing="-0.5"
               >
                 {firstLetter}
@@ -226,13 +223,15 @@ export default function PortfolioPreview({ data }) {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            <span>123</span>
-          </div>
+          {data.views > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{data.views}</span>
+            </div>
+          )}
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>

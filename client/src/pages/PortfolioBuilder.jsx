@@ -313,6 +313,9 @@ export default function PortfolioBuilder() {
               </Link>
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold truncate">Portfolio Builder</h1>
+                <p className="text-sm sm:text-base text-gray-600 mt-0.5 sm:mt-1">
+                  Create your professional online portfolio
+                </p>
                 {id && (
                   <div className="flex items-center gap-2 mt-1">
                     {watch('published') ? (
@@ -622,12 +625,12 @@ export default function PortfolioBuilder() {
 
             {/* Skills */}
             <section className="border-t pt-4 sm:pt-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg sm:text-xl font-semibold">Skills</h2>
                 <button
                   type="button"
                   onClick={() => appendSkill({ category: '', items: [''] })}
-                  className="flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline whitespace-nowrap">Add Skill Category</span>
@@ -663,12 +666,12 @@ export default function PortfolioBuilder() {
 
             {/* Projects */}
             <section className="border-t pt-4 sm:pt-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+              <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg sm:text-xl font-semibold">Projects</h2>
                 <button
                   type="button"
                   onClick={() => appendProject({ name: '', description: '', image: '', technologies: [], liveLink: '', githubLink: '', tag: '' })}
-                  className="flex items-center justify-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline whitespace-nowrap">Add Project</span>

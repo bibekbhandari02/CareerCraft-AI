@@ -150,9 +150,9 @@ export default function Templates() {
                 
                 {/* Resume Skeleton Preview */}
                 {(
-                  <div className="h-full w-full flex items-center justify-center bg-gray-100 overflow-hidden">
-                    <div className="bg-white shadow-sm" style={{ width: '180px', height: '254px', overflow: 'hidden' }}>
-                      <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '360px', height: '508px', padding: '24px' }}>
+                  <div className="h-full w-full flex items-start justify-center bg-gray-100 overflow-hidden pt-4">
+                    <div className="bg-white shadow-sm overflow-hidden" style={{ width: '160px', height: '226px' }}>
+                      <div style={{ transform: 'scale(0.44)', transformOrigin: 'top left', width: '364px', padding: '20px' }}>
                     {/* ATS-Friendly Template */}
                     {template.id === 'classic' && (
                       <div className="space-y-3">

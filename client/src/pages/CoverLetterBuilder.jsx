@@ -249,19 +249,20 @@ export default function CoverLetterBuilder() {
       <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-4 sm:mb-6 lg:mb-8">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-1.5 sm:gap-2 text-gray-600 hover:text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base p-1"
-          >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Back to Dashboard</span>
-          </button>
           <div className="flex flex-col gap-3 sm:gap-4">
             {/* Title and Buttons Row - Desktop */}
             <div className="hidden sm:flex items-center justify-between gap-4">
-              <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Cover Letter Builder</h1>
-                <p className="text-sm sm:text-base lg:text-lg text-gray-600 mt-1">Create a personalized cover letter with AI</p>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="text-gray-600 hover:text-gray-900 p-1"
+                >
+                  <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Cover Letter Builder</h1>
+                  <p className="text-sm sm:text-base text-gray-600 mt-1">AI-powered personalized cover letters</p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                 <button
@@ -294,11 +295,19 @@ export default function CoverLetterBuilder() {
             
             {/* Mobile Layout - Title and Buttons Separate */}
             <div className="sm:hidden">
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Cover Letter Builder</h1>
-                <p className="text-sm text-gray-600 mt-1">Create a personalized cover letter with AI</p>
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="text-gray-600 hover:text-gray-900 p-1"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Cover Letter Builder</h1>
+                  <p className="text-sm text-gray-600 mt-1">AI-powered personalized cover letters</p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleDownload}
                   disabled={!formData.content}
