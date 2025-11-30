@@ -1,12 +1,10 @@
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FileText, Globe, Sparkles, Zap, Users, Award, ArrowRight } from 'lucide-react';
-import { useAuthStore } from '../store/authStore';
 import { useState, useEffect } from 'react';
 import api from '../lib/api';
 import SEO from '../components/SEO';
 
 export default function Landing() {
-  const { user } = useAuthStore();
   const [stats, setStats] = useState({
     users: 0,
     resumes: 0,
@@ -41,11 +39,6 @@ export default function Landing() {
     }
     return `${num}+`;
   };
-
-  // Redirect to dashboard if user is logged in
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
 
   return (
     <>
