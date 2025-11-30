@@ -65,8 +65,9 @@ import {
 import { TbBrandReactNative, TbBrandCSharp } from 'react-icons/tb';
 
 export default function PortfolioPreview({ data }) {
-  const { content, profileImageUrl, logoUrl, logoText, colorTheme } = data || {};
+  const { content, profileImageUrl, logoUrl, logoText, colorTheme, template } = data || {};
   const themeColors = getThemeColors(colorTheme || 'purple-pink');
+  const currentTemplate = template || 'modern';
   
   const displayLogoText = logoText || content?.hero?.title?.split(' ')[0] || 'Logo';
   const firstLetter = displayLogoText[0]?.toUpperCase() || 'L';
@@ -238,9 +239,17 @@ export default function PortfolioPreview({ data }) {
         </div>
       </div>
 
+      {/* Template Badge */}
+      <div className="px-4 py-2 bg-[#1a1a1a] border-b border-gray-800 relative z-10">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">Template:</span>
+          <span className="text-xs font-semibold text-white capitalize">{currentTemplate}</span>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <div className="relative p-6 overflow-hidden z-10">
-        <div className={`flex ${profileImageUrl ? 'items-center gap-4' : 'flex-col items-center text-center'}`}>
+        <div className={`flex ${profileImageUrl && currentTemplate !== 'minimal' ? 'items-center gap-4' : 'flex-col items-center text-center'}`}>
           {profileImageUrl && (
             <div className="relative flex-shrink-0">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-md opacity-20"></div>

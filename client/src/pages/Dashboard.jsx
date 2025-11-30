@@ -17,11 +17,21 @@ export default function Dashboard() {
   const [showAllResumes, setShowAllResumes] = useState(false);
   const [showAllPortfolios, setShowAllPortfolios] = useState(false);
   const [showAllCoverLetters, setShowAllCoverLetters] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 1024);
   
-  const INITIAL_DISPLAY_COUNT = 4;
+  const INITIAL_DISPLAY_COUNT = isLargeScreen ? 6 : 4;
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth >= 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchData = async () => {

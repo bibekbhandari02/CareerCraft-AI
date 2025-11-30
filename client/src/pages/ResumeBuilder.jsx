@@ -1279,7 +1279,7 @@ export default function ResumeBuilder() {
                 </div>
               </div>
               
-              <div className="overflow-auto bg-white rounded shadow-inner p-4" style={{ maxHeight: 'calc(100vh - 13rem)' }}>
+              <div className="overflow-y-auto overflow-x-hidden bg-white rounded shadow-inner p-2" style={{ maxHeight: 'calc(100vh - 13rem)' }}>
                 <div 
                   className="transition-transform duration-200"
                   style={{ 

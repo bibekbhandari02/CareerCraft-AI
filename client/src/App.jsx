@@ -34,6 +34,11 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" />;
 };
 
+const RootRedirect = () => {
+  const { token } = useAuthStore();
+  return token ? <Navigate to="/dashboard" /> : <Landing />;
+};
+
 const Layout = ({ children }) => {
   const location = useLocation();
   const hideNavbar = ['/login', '/register'].includes(location.pathname) || 
@@ -55,7 +60,7 @@ function App() {
       <Layout>
         <Suspense fallback={<LoadingSpinner fullScreen />}>
           <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/pricing" element={<Pricing />} />

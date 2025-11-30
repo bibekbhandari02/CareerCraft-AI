@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Mail, Phone, Linkedin, Github, ExternalLink, Eye, Code2, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
@@ -67,6 +67,11 @@ import {
   SiHeroku,
 } from 'react-icons/si';
 import { TbBrandReactNative, TbBrandCSharp } from 'react-icons/tb';
+import ModernTemplate from '../components/portfolio-templates/ModernTemplate';
+import MinimalTemplate from '../components/portfolio-templates/MinimalTemplate';
+import CreativeTemplate from '../components/portfolio-templates/CreativeTemplate';
+import ProfessionalTemplate from '../components/portfolio-templates/ProfessionalTemplate';
+import { getSkillIcon } from '../utils/skillIcons';
 
 export default function PortfolioView() {
   const { subdomain } = useParams();
@@ -198,7 +203,7 @@ export default function PortfolioView() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0F0F0F]">
         <div className="text-center px-4">
-          <div className="text-6xl mb-4">🔍</div>
+          <div className="text-6xl mb-4">ðŸ”</div>
           <h1 className="text-4xl font-bold text-white mb-4">Portfolio Not Found</h1>
           <p className="text-gray-400 text-lg">This portfolio doesn't exist or hasn't been published yet.</p>
         </div>
@@ -274,7 +279,10 @@ export default function PortfolioView() {
       />
 
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 backdrop-blur-sm z-[100]" style={{ backgroundColor: 'var(--theme-background)E6', borderBottom: '1px solid var(--theme-border)' }}>
+      <nav className="fixed top-0 left-0 right-0 backdrop-blur-sm z-[100]" style={{ 
+        backgroundColor: portfolio.template === 'minimal' ? 'rgba(255, 255, 255, 0.9)' : 'var(--theme-background)E6', 
+        borderBottom: portfolio.template === 'minimal' ? '1px solid #e5e5e5' : '1px solid var(--theme-border)' 
+      }}>
         <div className="container mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
           <button
             onClick={() => scrollToSection('home')}
@@ -331,7 +339,7 @@ export default function PortfolioView() {
                       y="32" 
                       fontSize="24" 
                       fontWeight="600" 
-                      fill="white" 
+                      fill={portfolio.template === 'minimal' ? 'black' : 'white'}
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="0.5"
                     >
@@ -350,7 +358,11 @@ export default function PortfolioView() {
                 <button
                   onClick={() => scrollToSection(item)}
                   className={`text-lg capitalize transition-colors duration-200 ${
-                    activeSection === item
+                    portfolio.template === 'minimal'
+                      ? activeSection === item
+                        ? 'text-black font-semibold'
+                        : 'text-gray-600 hover:text-gray-800'
+                      : activeSection === item
                       ? 'text-white font-semibold'
                       : 'text-[#888888] hover:text-gray-300'
                   }`}
@@ -370,9 +382,9 @@ export default function PortfolioView() {
 
           {/* Mobile Menu Button & Views */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Eye className="w-4 h-4" />
-              <span>{portfolio.views}</span>
+            <div className="flex items-center gap-2 text-sm">
+              <Eye className={`w-4 h-4 ${portfolio.template === 'minimal' ? 'text-gray-700' : ''}`} style={{ color: portfolio.template === 'minimal' ? undefined : 'var(--theme-primary)' }} />
+              <span className={portfolio.template === 'minimal' ? 'text-gray-700' : 'text-gray-400'}>{portfolio.views}</span>
             </div>
             
             <button
@@ -381,11 +393,11 @@ export default function PortfolioView() {
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             >
               {menuOpen ? (
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-8 h-8 ${portfolio.template === 'minimal' ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               ) : (
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-8 h-8 ${portfolio.template === 'minimal' ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               )}
@@ -402,7 +414,11 @@ export default function PortfolioView() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed top-0 left-0 w-full h-screen bg-black/60 z-[90]"
+                className={`fixed top-0 left-0 w-full h-screen z-[90] ${
+                  portfolio.template === 'minimal' 
+                    ? 'bg-black/20' 
+                    : 'bg-black/60'
+                }`}
                 style={{ height: '100vh', minHeight: '100vh' }}
                 onClick={() => setMenuOpen(false)}
               />
@@ -413,7 +429,11 @@ export default function PortfolioView() {
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed top-0 right-0 h-screen w-[280px] bg-[#121212] z-[95] p-8 space-y-6 pt-24 shadow-2xl border-l border-gray-800 overflow-y-auto"
+                className={`fixed top-0 right-0 h-screen w-[280px] z-[95] p-8 space-y-6 pt-24 shadow-2xl overflow-y-auto ${
+                  portfolio.template === 'minimal'
+                    ? 'bg-white border-l border-gray-200'
+                    : 'backdrop-blur-2xl bg-[#0a0a0a]/95 border-l border-white/10'
+                }`}
                 style={{ height: '100vh' }}
               >
                 {navLinks.map((item, i) => (
@@ -428,16 +448,22 @@ export default function PortfolioView() {
                         scrollToSection(item);
                         setMenuOpen(false);
                       }}
-                      className={`block text-lg capitalize cursor-pointer transition-colors relative ${
-                        activeSection === item
-                          ? 'text-white font-semibold'
-                          : 'text-[#888888] hover:text-gray-300'
+                      className={`block text-lg capitalize cursor-pointer transition-all relative ${
+                        portfolio.template === 'minimal'
+                          ? activeSection === item
+                            ? 'text-black font-semibold'
+                            : 'text-gray-600 hover:text-gray-900'
+                          : activeSection === item
+                          ? 'text-transparent bg-clip-text theme-gradient font-semibold'
+                          : 'text-gray-300 hover:text-white'
                       }`}
+                      style={activeSection === item && portfolio.template !== 'minimal' ? {
+                        backgroundImage: 'linear-gradient(to right, var(--theme-primary), var(--theme-secondary))',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                      } : {}}
                     >
                       {item}
-                      {activeSection === item && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 w-2 h-2 rounded-full theme-gradient" />
-                      )}
                     </button>
                   </motion.li>
                 ))}
@@ -447,573 +473,46 @@ export default function PortfolioView() {
         </AnimatePresence>
       </nav>
 
-      {/* Hero Section */}
-      <section id="home" className="relative pt-32 pb-16 px-6 md:px-12 z-10">
-        
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-12 gap-8 items-center">
-            {/* Profile Picture */}
-            {portfolio.profileImageUrl && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="md:col-span-4 flex justify-center md:justify-end order-first md:order-last"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full blur-xl opacity-20 theme-gradient"></div>
-                  <img
-                    src={portfolio.profileImageUrl}
-                    alt={content.hero?.title}
-                    loading="eager"
-                    decoding="async"
-                    className="relative w-48 h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-full border-4 border-[#1f1f1f] shadow-2xl"
-                  />
-                </div>
-              </motion.div>
-            )}
+      {/* Render Complete Template */}
+      {(() => {
+        const templateProps = {
+          portfolio,
+          content,
+          scrollToSection,
+          getSkillIcon,
+          projectFilter,
+          setProjectFilter,
+          projectTags,
+          setSelectedProject,
+          setIsModalOpen
+        };
 
-            {/* Hero Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              className={`${portfolio.profileImageUrl ? 'md:col-span-8' : 'md:col-span-12'} text-center ${portfolio.profileImageUrl ? 'md:text-left' : ''}`}
-            >
-              <div className="inline-block mb-4 bg-[#1E1E1E] px-4 py-2 text-sm rounded-full text-gray-400">
-                {content.hero?.subtitle || 'Portfolio'}
-              </div>
-              
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-300 to-gray-500">
-                  {content.hero?.title}
-                </span>
-              </h1>
-              
-              <p className="text-[#A0A0A0] text-base md:text-lg lg:text-xl mb-8 leading-relaxed text-center md:text-justify">
-                {content.hero?.description}
-              </p>
+        // Debug: Log current template
+        console.log('Current template:', portfolio.template);
 
-              <div className={`flex flex-wrap gap-4 ${portfolio.profileImageUrl ? 'justify-center md:justify-start' : 'justify-center'}`}>
-              {content.contact?.email && (
-                <button
-                  onClick={() => {
-                    scrollToSection('contact');
-                    setTimeout(() => {
-                      document.getElementById('name')?.focus();
-                    }, 500);
-                  }}
-                  className="px-7 py-3 rounded-full bg-gradient-to-br from-[#3A3A3A] to-[#2A2A2A] hover:from-[#4A4A4A] hover:to-[#3A3A3A] text-white transition-all duration-300 font-medium"
-                >
-                  Connect With Me
-                </button>
-              )}
-              {portfolio.resumeUrl ? (
-                <motion.a
-                  href={portfolio.resumeUrl}
-                  download={`${content.hero?.title?.replace(/\s+/g, '_')}_CV.pdf`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-2 px-7 py-3 rounded-full text-white font-semibold shadow-lg transition-all duration-300 theme-gradient theme-gradient-hover"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Download CV
-                </motion.a>
-              ) : content.contact?.github ? (
-                <a
-                  href={content.contact.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-7 py-3 rounded-full text-white font-semibold shadow-lg transition-all duration-300 theme-gradient theme-gradient-hover"
-                >
-                  <Github className="w-5 h-5" />
-                  View GitHub
-                </a>
-              ) : null}
-            </div>
+        const currentTemplate = portfolio.template || 'professional';
 
-            <div className={`flex gap-4 mt-8 ${portfolio.profileImageUrl ? 'justify-center md:justify-start' : 'justify-center'}`}>
-              {content.contact?.github && (
-                <a
-                  href={content.contact.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#c9510c] text-white transition-all duration-300 hover:scale-110"
-                >
-                  <Github size={28} />
-                </a>
-              )}
-              {content.contact?.linkedin && (
-                <a
-                  href={content.contact.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-[#0077b5] text-white transition-all duration-300 hover:scale-110"
-                >
-                  <Linkedin size={28} />
-                </a>
-              )}
-            </div>
-          </motion.div>
-          </div>
-        </div>
-      </section>
+        switch (currentTemplate) {
+          case 'minimal':
+            return <MinimalTemplate {...templateProps} />;
+          case 'creative':
+            return <CreativeTemplate {...templateProps} />;
+          case 'modern':
+            return <ModernTemplate {...templateProps} />;
+          case 'professional':
+            return <ProfessionalTemplate {...templateProps} />;
+          default:
+            return <ProfessionalTemplate {...templateProps} />;
+        }
+      })()}
 
-      {/* About Section */}
-      {content.about && (
-        <section id="about" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="text-left md:text-center mb-8 md:mb-12">
-                <h2 className="text-4xl md:text-5xl font-bold text-white">About Me</h2>
-              </div>
-              
-              <div className="max-w-4xl mx-auto">
-                <p className="text-base md:text-lg text-[#ADB7BE] leading-relaxed whitespace-pre-line text-center md:text-justify">
-                  {content.about}
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* Skills Section */}
-      {content.skills && content.skills.length > 0 && (
-        <section id="skills" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
-          <div className="container mx-auto max-w-6xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="text-left md:text-center mb-8 md:mb-12">
-                <h2 className="text-4xl md:text-5xl font-bold text-white">Skills & Tools</h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {content.skills.map((skillGroup, index) => {
-                  let skillItems = [];
-                  if (Array.isArray(skillGroup.items)) {
-                    skillItems = skillGroup.items;
-                  } else if (typeof skillGroup.items === 'string') {
-                    skillItems = skillGroup.items.split(',').map(s => s.trim()).filter(Boolean);
-                  }
-
-                  const getSkillIcon = (skill) => {
-                    const skillLower = skill.toLowerCase();
-                    
-                    // Frontend
-                    if (skillLower.includes('react native')) return <TbBrandReactNative className="text-cyan-400 text-xl" />;
-                    if (skillLower.includes('react')) return <FaReact className="text-cyan-400 text-xl" />;
-                    if (skillLower.includes('vue')) return <FaVuejs className="text-green-500 text-xl" />;
-                    if (skillLower.includes('angular')) return <FaAngular className="text-red-600 text-xl" />;
-                    if (skillLower.includes('html')) return <FaHtml5 className="text-orange-500 text-xl" />;
-                    if (skillLower.includes('css')) return <FaCss3Alt className="text-blue-500 text-xl" />;
-                    if (skillLower.includes('javascript') || skillLower.includes('js')) return <SiJavascript className="text-yellow-400 text-xl" />;
-                    if (skillLower.includes('typescript') || skillLower.includes('ts')) return <SiTypescript className="text-blue-600 text-xl" />;
-                    if (skillLower.includes('tailwind')) return <SiTailwindcss className="text-teal-400 text-xl" />;
-                    if (skillLower.includes('bootstrap')) return <FaBootstrap className="text-purple-600 text-xl" />;
-                    if (skillLower.includes('sass') || skillLower.includes('scss')) return <FaSass className="text-pink-500 text-xl" />;
-                    if (skillLower.includes('next')) return <SiNextdotjs className="text-white text-xl" />;
-                    if (skillLower.includes('redux')) return <SiRedux className="text-purple-500 text-xl" />;
-                    if (skillLower.includes('vite')) return <SiVite className="text-purple-400 text-xl" />;
-                    if (skillLower.includes('webpack')) return <SiWebpack className="text-blue-400 text-xl" />;
-                    
-                    // Backend
-                    if (skillLower.includes('node')) return <FaNodeJs className="text-green-500 text-xl" />;
-                    if (skillLower.includes('express')) return <SiExpress className="text-white text-xl" />;
-                    if (skillLower.includes('python')) return <FaPython className="text-[#3776AB] text-xl" />;
-                    if (skillLower.includes('django')) return <SiDjango className="text-green-700 text-xl" />;
-                    if (skillLower.includes('flask')) return <SiFlask className="text-white text-xl" />;
-                    if (skillLower.includes('java')) return <FaJava className="text-orange-400 text-xl" />;
-                    if (skillLower.includes('spring')) return <SiSpring className="text-green-500 text-xl" />;
-                    if (skillLower.includes('php')) return <FaPhp className="text-indigo-300 text-xl" />;
-                    if (skillLower.includes('laravel')) return <SiLaravel className="text-red-600 text-xl" />;
-                    if (skillLower.includes('ruby') || skillLower.includes('rails')) return <SiRubyonrails className="text-red-500 text-xl" />;
-                    if (skillLower.includes('rust')) return <SiRust className="text-orange-600 text-xl" />;
-                    if (skillLower.includes('c++')) return <SiCplusplus className="text-blue-500 text-xl" />;
-                    if (skillLower.includes('c#')) return <TbBrandCSharp className="text-purple-600 text-xl" />;
-                    
-                    // Database (check before 'go' to avoid conflict with 'mongo')
-                    if (skillLower.includes('mongodb')) return <SiMongodb className="text-green-500 text-xl" />;
-                    if (skillLower.includes('go') || skillLower.includes('golang')) return <SiGo className="text-cyan-400 text-xl" />;
-                    if (skillLower.includes('mysql')) return <SiMysql className="text-blue-500 text-xl" />;
-                    if (skillLower.includes('postgresql') || skillLower.includes('postgres')) return <SiPostgresql className="text-blue-400 text-xl" />;
-                    if (skillLower.includes('redis')) return <SiRedis className="text-red-500 text-xl" />;
-                    if (skillLower.includes('firebase')) return <SiFirebase className="text-yellow-500 text-xl" />;
-                    if (skillLower.includes('sql') || skillLower.includes('database')) return <FaDatabase className="text-purple-400 text-xl" />;
-                    
-                    // DevOps & Tools
-                    if (skillLower.includes('docker')) return <FaDocker className="text-blue-500 text-xl" />;
-                    if (skillLower.includes('kubernetes') || skillLower.includes('k8s')) return <SiKubernetes className="text-blue-600 text-xl" />;
-                    if (skillLower.includes('aws')) return <FaAws className="text-orange-400 text-xl" />;
-                    if (skillLower.includes('azure')) return <FaAws className="text-blue-500 text-xl" />;
-                    if (skillLower.includes('gcp') || skillLower.includes('google cloud')) return <SiGooglecloud className="text-blue-400 text-xl" />;
-                    if (skillLower.includes('github')) return <FaGithub className="text-white text-xl" />;
-                    if (skillLower.includes('gitlab')) return <SiGitlab className="text-orange-600 text-xl" />;
-                    if (skillLower.includes('git')) return <FaGitAlt className="text-orange-500 text-xl" />;
-                    if (skillLower.includes('jenkins')) return <SiJenkins className="text-red-500 text-xl" />;
-                    if (skillLower.includes('ci/cd') || skillLower.includes('cicd')) return <FaInfinity className="text-blue-400 text-xl" />;
-                    if (skillLower.includes('linux')) return <FaLinux className="text-yellow-400 text-xl" />;
-                    if (skillLower.includes('nginx')) return <SiNginx className="text-green-500 text-xl" />;
-                    if (skillLower.includes('npm')) return <FaNpm className="text-red-600 text-xl" />;
-                    if (skillLower.includes('yarn')) return <FaYarn className="text-blue-400 text-xl" />;
-                    if (skillLower.includes('vercel')) return <SiVercel className="text-white text-xl" />;
-                    if (skillLower.includes('netlify')) return <SiNetlify className="text-teal-400 text-xl" />;
-                    if (skillLower.includes('heroku')) return <SiHeroku className="text-purple-600 text-xl" />;
-                    
-                    // Mobile
-                    if (skillLower.includes('flutter')) return <SiFlutter className="text-blue-400 text-xl" />;
-                    if (skillLower.includes('swift')) return <FaSwift className="text-orange-500 text-xl" />;
-                    if (skillLower.includes('kotlin')) return <SiKotlin className="text-purple-500 text-xl" />;
-                    if (skillLower.includes('android')) return <FaAndroid className="text-green-500 text-xl" />;
-                    if (skillLower.includes('ios')) return <FaApple className="text-white text-xl" />;
-                    
-                    // Design & Other
-                    if (skillLower.includes('figma')) return <FaFigma className="text-purple-500 text-xl" />;
-                    if (skillLower.includes('graphql')) return <SiGraphql className="text-pink-500 text-xl" />;
-                    if (skillLower.includes('jest')) return <SiJest className="text-red-600 text-xl" />;
-                    if (skillLower.includes('postman')) return <SiPostman className="text-orange-500 text-xl" />;
-                    
-                    return <Code2 className="text-gray-400 text-xl" />;
-                  };
-
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.4, delay: index * 0.1 }}
-                      className="bg-[#1f1f1f] p-6 rounded-2xl border border-gray-800"
-                    >
-                      <h4 className="text-xl font-semibold mb-4 text-gray-300">
-                        {skillGroup.category}
-                      </h4>
-                      <div className="flex flex-wrap gap-3">
-                        {skillItems.map((skill, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#2a2a2a] rounded-lg hover:bg-[#3a3a3a] hover:scale-105 transition-all duration-200"
-                          >
-                            {getSkillIcon(skill)}
-                            <span>{skill}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* Projects Section */}
-      {content.projects && content.projects.length > 0 && (
-        <section id="projects" className="relative py-12 md:py-20 px-6 md:px-12 z-10">
-          <div className="container mx-auto max-w-7xl">
-            <div className="text-left md:text-center mb-8 md:mb-12">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">My Projects</h2>
-              
-              {/* Filter Tags */}
-              <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap px-4">
-                {projectTags.map((tag) => {
-                  const tagLabels = {
-                    'all': 'All',
-                    'recent': 'Recent',
-                    'ai': 'AI',
-                    'fullstack': 'Full Stack',
-                    'frontend': 'Frontend',
-                    'web': 'Web'
-                  };
-                  
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => setProjectFilter(tag)}
-                      className={`px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
-                        projectFilter === tag
-                          ? 'text-white theme-gradient shadow-lg'
-                          : 'text-gray-400 bg-[#1f1f1f] hover:bg-[#2a2a2a] hover:text-gray-300'
-                      }`}
-                    >
-                      {tagLabels[tag] || tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(projectFilter === 'all'
-                ? content.projects
-                : projectFilter === 'recent'
-                ? content.projects.slice(0, 3)
-                : content.projects.filter(p => p.tag === projectFilter)
-              ).map((project, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.2 }}
-                  onClick={() => {
-                    setSelectedProject(project);
-                    setIsModalOpen(true);
-                  }}
-                  className="rounded-xl overflow-hidden shadow-lg flex flex-col bg-[#181818] transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-gray-800/50 cursor-pointer"
-                >
-                  <div className="h-56 w-full relative group overflow-hidden bg-[#2a2a2a]">
-                    {project.image ? (
-                      <img
-                        src={project.image}
-                        alt={project.name}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#2a2a2a] flex items-center justify-center text-6xl">
-                        {index % 3 === 0 ? '🚀' : index % 3 === 1 ? '💡' : '🎨'}
-                      </div>
-                    )}
-                    
-                    <div className="overlay items-center justify-center absolute top-0 left-0 w-full h-full bg-[#181818] bg-opacity-0 hidden group-hover:flex group-hover:bg-opacity-80 transition-all duration-500 gap-4">
-                      {project.githubLink && (
-                        <a
-                          href={project.githubLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-14 w-14 border-2 rounded-full border-[#ADB7BE] hover:border-white flex items-center justify-center group/link"
-                        >
-                          <Code2 className="h-8 w-8 text-[#ADB7BE] group-hover/link:text-white" />
-                        </a>
-                      )}
-                      {project.liveLink && (
-                        <a
-                          href={project.liveLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-14 w-14 border-2 rounded-full border-[#ADB7BE] hover:border-white flex items-center justify-center group/link"
-                        >
-                          <ExternalLink className="h-8 w-8 text-[#ADB7BE] group-hover/link:text-white" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-white py-6 px-4 flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <h5 className="text-xl font-semibold flex-1">{project.name}</h5>
-                      {project.tag && (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full theme-gradient flex-shrink-0">
-                          {project.tag === 'ai' ? 'AI' : 
-                           project.tag === 'fullstack' ? 'Full Stack' : 
-                           project.tag === 'frontend' ? 'Frontend' : 
-                           project.tag === 'web' ? 'Web' : project.tag}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[#ADB7BE] line-clamp-2">{project.description}</p>
-                    
-                    {project.technologies && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {(Array.isArray(project.technologies)
-                          ? project.technologies
-                          : project.technologies.split(',').map(t => t.trim()).filter(Boolean)
-                        ).map((tech, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 text-xs text-[#ADB7BE] bg-[#2a2a2a] rounded"
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Contact Section */}
-      <section id="contact" className="relative py-12 md:py-16 px-6 md:px-12 z-10">
-        
-        <div className="container mx-auto max-w-7xl">
-          <div className="hidden md:block text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white">
-              Get in touch
-            </h1>
-          </div>
-
-          <div className="flex flex-col lg:flex-row justify-between items-start gap-16">
-            {/* Info Section */}
-            <div className="flex-1">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Let's Connect</h2>
-              <p className="text-gray-400 text-base leading-relaxed mb-8">
-                I'm always excited to work on new projects and collaborate with passionate people. 
-                Whether you have a question or just want to say hi, feel free to reach out!
-              </p>
-
-              <ul className="space-y-4 text-white text-base">
-                {content.contact?.email && (
-                  <li className="flex items-center gap-4">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <span>{content.contact.email}</span>
-                  </li>
-                )}
-                {content.contact?.phone && (
-                  <li className="flex items-center gap-4">
-                    <Phone className="w-5 h-5 text-gray-400" />
-                    <span>{content.contact.phone}</span>
-                  </li>
-                )}
-              </ul>
-
-              <div className="flex gap-4 mt-6">
-                {content.contact?.github && (
-                  <a
-                    href={content.contact.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="GitHub"
-                    className="text-white transition-transform transform hover:scale-110 hover:text-[#c9510c] hover:drop-shadow-md"
-                  >
-                    <Github size={28} />
-                  </a>
-                )}
-                {content.contact?.linkedin && (
-                  <a
-                    href={content.contact.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="LinkedIn"
-                    className="text-white transition-transform transform hover:scale-110 hover:text-[#0077b5] hover:drop-shadow-md"
-                  >
-                    <Linkedin size={28} />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* Contact Form */}
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = {
-                  name: formData.get('name'),
-                  email: formData.get('email'),
-                  message: formData.get('message'),
-                  access_key: '0d0817fe-fb5a-462a-922d-049db623bdd0'
-                };
-
-                try {
-                  const response = await fetch('https://api.web3forms.com/submit', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                  });
-
-                  const result = await response.json();
-                  if (result.success) {
-                    alert('Message sent successfully! I\'ll get back to you soon.');
-                    e.target.reset();
-                  } else {
-                    alert('Submission failed. Please try again!');
-                  }
-                } catch (error) {
-                  alert('An error occurred. Please check your connection.');
-                }
-              }}
-              className="flex-1 space-y-6 w-full"
-            >
-              <div>
-                <label htmlFor="name" className="block text-sm text-white mb-2">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  id="name"
-                  required
-                  placeholder="Enter your name"
-                  className="bg-[#18191E] border border-[#3d3d3d] placeholder-[#aaaaaa] text-white text-sm rounded-lg block w-full p-3 focus:ring-2 focus:ring-[#444] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm text-white mb-2">
-                  Your Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  required
-                  placeholder="Enter your email"
-                  className="bg-[#18191E] border border-[#3d3d3d] placeholder-[#aaaaaa] text-white text-sm rounded-lg block w-full p-3 focus:ring-2 focus:ring-[#444] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="message" className="block text-sm text-white mb-2">
-                  Message
-                </label>
-                <textarea
-                  name="message"
-                  id="message"
-                  rows="4"
-                  required
-                  placeholder="Enter your message"
-                  className="bg-[#18191E] border border-[#3d3d3d] placeholder-[#aaaaaa] text-white text-sm rounded-lg block w-full p-3 focus:ring-2 focus:ring-[#444] focus:outline-none resize-none"
-                ></textarea>
-              </div>
-
-              <button
-                type="submit"
-                className="group flex items-center gap-2 px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 theme-gradient theme-gradient-hover"
-              >
-                Send Message
-                <svg 
-                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
+      {/* Footer - Show for all templates except Minimal */}
+      {portfolio.template !== 'minimal' && (
       <footer className="relative py-6 text-gray-400 border-t border-gray-800 z-10">
         <div className="px-6 md:px-12">
           {/* Top Section */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6">
-            <div className="flex flex-col lg:max-w-lg">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 lg:gap-12 mb-6">
+            <div className="flex flex-col flex-1 max-w-2xl">
               <button
                 onClick={scrollToTop}
                 className="mb-4 hover:opacity-80 transition-opacity cursor-pointer text-left"
@@ -1140,20 +639,21 @@ export default function PortfolioView() {
 
             {/* Copyright */}
             <div className="text-sm text-gray-500">
-              © {new Date().getFullYear()} {content.hero?.title || 'Portfolio'}. All rights reserved.
+              Â© {new Date().getFullYear()} {content.hero?.title || 'Portfolio'}. All rights reserved.
             </div>
           </div>
         </div>
       </footer>
+      )}
 
       {/* Scroll to Top Button */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white rounded-full transition-all duration-300 shadow-lg ${
+        className={`fixed bottom-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white rounded-full transition-all duration-300 shadow-lg theme-gradient ${
           showScrollTop
-            ? 'bg-gradient-to-tr from-gray-700 via-gray-800 to-gray-900 opacity-100 scale-100'
+            ? 'opacity-100 scale-100'
             : 'opacity-0 scale-90 pointer-events-none'
-        } hover:scale-110 hover:from-gray-600 hover:via-gray-700 hover:to-gray-800`}
+        } hover:scale-110`}
       >
         <ArrowUp className="text-xl" />
       </button>

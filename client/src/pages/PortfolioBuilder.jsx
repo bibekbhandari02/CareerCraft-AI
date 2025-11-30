@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { Sparkles, Eye, Save, ArrowLeft, Plus, Trash2, Upload, Globe, ExternalLink } from 'lucide-react';
 import api, { trackEvent } from '../lib/api';
 import PortfolioPreview from '../components/PortfolioPreview';
+import PortfolioLivePreview from '../components/PortfolioLivePreview';
+import { portfolioTemplates } from '../utils/portfolioTemplates';
 
 export default function PortfolioBuilder() {
   const { id } = useParams();
@@ -19,10 +21,12 @@ export default function PortfolioBuilder() {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [showAllThemes, setShowAllThemes] = useState(false);
+  const [portfolioViews, setPortfolioViews] = useState(0);
   const { register, handleSubmit, setValue, watch, control } = useForm({
     defaultValues: {
       subdomain: '',
       theme: 'modern',
+      template: 'professional',
       colorTheme: 'purple-pink',
       colors: {
         primary: '#3b82f6',
@@ -69,10 +73,27 @@ export default function PortfolioBuilder() {
     }
   }, [id]);
 
+  // Keyboard shortcut for live preview (Ctrl/Cmd + P)
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        setShowPreview(prev => !prev);
+        toast.success(showPreview ? 'Live preview hidden' : 'Live preview enabled!');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showPreview]);
+
   const fetchPortfolio = async () => {
     try {
       const { data } = await api.get(`/portfolio/${id}`);
       const portfolio = data.portfolio;
+      
+      // Store views separately
+      setPortfolioViews(portfolio.views || 0);
       
       // Convert arrays to comma-separated strings for form inputs
       if (portfolio.content?.skills) {
@@ -297,14 +318,14 @@ export default function PortfolioBuilder() {
     }
   };
 
-  const portfolioData = watch();
+  const portfolioData = { ...watch(), views: portfolioViews };
 
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-6 lg:py-8">
-      <div className="container mx-auto px-3 sm:px-4 lg:px-6 max-w-7xl">
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className={`container mx-auto px-3 sm:px-4 lg:px-6 transition-all duration-300 ${showPreview ? 'max-w-[95vw]' : 'max-w-4xl'}`}>
+        <div className={`grid gap-4 lg:gap-6 transition-all duration-300 ${showPreview ? 'lg:grid-cols-2' : 'lg:grid-cols-1'}`}>
           {/* Main Form */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
+          <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 lg:p-6">
           {/* Header */}
           <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -341,16 +362,39 @@ export default function PortfolioBuilder() {
                 <span className="whitespace-nowrap">{generating ? 'Generating...' : 'AI Generate'}</span>
               </button>
               <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 text-sm sm:text-base font-medium flex-1 sm:flex-initial min-w-[90px] sm:min-w-[100px]"
+                type="button"
+                onClick={() => {
+                  setShowPreview(!showPreview);
+                  if (!showPreview) {
+                    toast.success('Live preview enabled! See changes in real-time →', { duration: 3000 });
+                  }
+                }}
+                className="hidden lg:flex items-center gap-2 bg-indigo-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base relative group"
+                title="Toggle live preview"
               >
                 <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="whitespace-nowrap">{showPreview ? 'Hide' : 'Preview'}</span>
+                <span>{showPreview ? 'Hide Live Preview' : 'Live Preview'}</span>
+                {!showPreview && (
+                  <span className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    Press Ctrl+P (⌘+P on Mac)
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                className="lg:hidden flex items-center gap-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 text-sm sm:text-base"
+              >
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Preview</span>
               </button>
             </div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6 lg:space-y-8">
+            {/* Hidden input to ensure template is submitted */}
+            <input type="hidden" {...register('template')} />
+            
             {/* Logo & Profile Picture Upload */}
             <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
               <section>
@@ -502,6 +546,56 @@ export default function PortfolioBuilder() {
                 <span className="text-xs sm:text-sm lg:text-base text-gray-600 whitespace-nowrap">.careercraftai.com</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2">Choose a unique subdomain for your portfolio</p>
+            </section>
+
+            {/* Template Selection */}
+            <section className="border-t pt-4 sm:pt-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Portfolio Template</h2>
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                Choose a layout structure for your portfolio. Each template has a unique design and layout style.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-xs sm:text-sm text-blue-800">
+                <strong>💡 Tip:</strong> You can change your template anytime. Try different templates to see which one best showcases your work!
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {portfolioTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => setValue('template', template.id)}
+                    className={`relative p-4 rounded-xl border-2 transition-all text-left hover:shadow-lg ${
+                      watch('template') === template.id
+                        ? 'border-indigo-600 ring-2 ring-indigo-200 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-300 bg-white'
+                    }`}
+                  >
+                    <h3 className="text-base font-bold mb-1">{template.name}</h3>
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">{template.description}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {template.features.slice(0, 2).map((feature, idx) => (
+                        <span key={idx} className="text-xs px-2 py-0.5 bg-gray-100 rounded text-gray-600">
+                          {feature}
+                        </span>
+                      ))}
+                    </div>
+                    {watch('template') === template.id && (
+                      <div className="absolute top-3 right-3 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-600">
+                  <strong>Selected: {portfolioTemplates.find(t => t.id === watch('template'))?.name}</strong> - 
+                  {' '}{portfolioTemplates.find(t => t.id === watch('template'))?.description}
+                </p>
+              </div>
             </section>
 
             {/* Color Theme */}
@@ -980,13 +1074,22 @@ export default function PortfolioBuilder() {
           </form>
         </div>
 
-        {/* Live Preview Sidebar - Desktop only, Mobile uses modal */}
+        {/* Live Preview Panel - Desktop Only */}
         {showPreview && (
-          <div className="hidden lg:block lg:col-span-1">
-            <div className="sticky top-8">
-              <h3 className="text-lg font-semibold mb-4">Live Preview</h3>
-              <div className="bg-gray-50 rounded-lg p-4 flex justify-center items-start">
-                <PortfolioPreview data={portfolioData} />
+          <div className="hidden lg:block bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-lg p-4 overflow-hidden sticky top-4" style={{ height: 'calc(100vh - 2rem)' }}>
+            <div className="mb-3">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-indigo-600" />
+                <span>Live Preview</span>
+                <span className="text-xs text-gray-500 font-normal">(Updates as you type)</span>
+              </h3>
+            </div>
+            <div className="bg-gray-900 rounded-lg shadow-2xl border border-gray-700 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100% - 3rem)' }}>
+              <div style={{
+                zoom: '0.6',
+                width: '100%'
+              }}>
+                <PortfolioLivePreview key={portfolioViews} data={portfolioData} />
               </div>
             </div>
           </div>
@@ -997,7 +1100,7 @@ export default function PortfolioBuilder() {
       {/* Mobile Preview Modal */}
       {showPreview && (
         <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
               <h3 className="text-lg font-semibold">Live Preview</h3>
               <button
@@ -1009,8 +1112,8 @@ export default function PortfolioBuilder() {
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto bg-gray-50 p-4 flex justify-center items-start">
-              <PortfolioPreview data={portfolioData} />
+            <div className="flex-1 overflow-y-auto bg-gray-900">
+              <PortfolioLivePreview data={portfolioData} />
             </div>
           </div>
         </div>

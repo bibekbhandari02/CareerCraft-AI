@@ -16,6 +16,11 @@ const portfolioSchema = new mongoose.Schema({
     type: String,
     default: 'modern'
   },
+  template: {
+    type: String,
+    enum: ['modern', 'minimal', 'creative', 'professional'],
+    default: 'modern'
+  },
   colorTheme: {
     type: String,
     default: 'purple-pink'
