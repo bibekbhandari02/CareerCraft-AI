@@ -14,27 +14,35 @@ export default function MinimalTemplate({ portfolio, content, scrollToSection, p
             transition={{ duration: 0.8 }}
           >
             {/* Giant Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-8 text-black tracking-tight leading-tight">
-              {content.hero?.title || 'Your Name'}
-            </h1>
+            {content.hero?.title && (
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-8 text-black tracking-tight leading-tight">
+                {content.hero.title}
+              </h1>
+            )}
 
             {/* One-Sentence Description */}
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 font-light">
-              {content.hero?.subtitle || 'Full Stack Developer'}
-            </p>
+            {content.hero?.subtitle && (
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 font-light">
+                {content.hero.subtitle}
+              </p>
+            )}
 
             {/* Thin Divider with animation */}
-            <motion.div 
-              className="w-16 h-px bg-gray-400 mx-auto my-12"
-              initial={{ width: 0 }}
-              animate={{ width: 64 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-            ></motion.div>
+            {(content.hero?.title || content.hero?.subtitle) && (
+              <motion.div 
+                className="w-16 h-px bg-gray-400 mx-auto my-12"
+                initial={{ width: 0 }}
+                animate={{ width: 64 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+              ></motion.div>
+            )}
 
             {/* Brief Description */}
-            <p className="text-base sm:text-lg text-gray-500 mb-16 max-w-2xl mx-auto leading-relaxed font-light">
-              {content.hero?.description}
-            </p>
+            {content.hero?.description && (
+              <p className="text-base sm:text-lg text-gray-500 mb-16 max-w-2xl mx-auto leading-relaxed font-light">
+                {content.hero.description}
+              </p>
+            )}
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -247,6 +255,7 @@ export default function MinimalTemplate({ portfolio, content, scrollToSection, p
       )}
 
       {/* CONTACT - Simple Form */}
+      {(content.contact?.email || content.contact?.phone || content.contact?.linkedin || content.contact?.github) && (
       <section id="contact" className="relative py-24 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-12 z-10 bg-white border-t border-gray-200">
         <div className="container mx-auto max-w-3xl">
           <h2 className="text-sm sm:text-base uppercase tracking-widest text-gray-600 mb-16 text-center font-medium">
@@ -314,6 +323,7 @@ export default function MinimalTemplate({ portfolio, content, scrollToSection, p
           </form>
         </div>
       </section>
+      )}
 
       {/* FOOTER - Simple Minimal */}
       <footer className="relative py-12 px-4 sm:px-6 lg:px-12 z-10 bg-white border-t border-gray-200">

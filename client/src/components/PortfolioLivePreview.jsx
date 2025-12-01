@@ -38,7 +38,19 @@ export default function PortfolioLivePreview({ data }) {
     }
   };
 
-  const navLinks = ['home', 'about', 'skills', 'projects', 'contact'];
+  // Conditionally include nav links only if their sections have data
+  const hasHeroInfo = content.hero?.title || content.hero?.subtitle || content.hero?.description;
+  const hasAboutInfo = content.about && content.about.trim().length > 0;
+  const hasSkillsInfo = content.skills && content.skills.length > 0;
+  const hasProjectsInfo = content.projects && content.projects.length > 0;
+  const hasContactInfo = content.contact?.email || content.contact?.phone || content.contact?.linkedin || content.contact?.github;
+  
+  const navLinks = [];
+  if (hasHeroInfo) navLinks.push('home');
+  if (hasAboutInfo) navLinks.push('about');
+  if (hasSkillsInfo) navLinks.push('skills');
+  if (hasProjectsInfo) navLinks.push('projects');
+  if (hasContactInfo) navLinks.push('contact');
 
   const templateProps = {
     portfolio,

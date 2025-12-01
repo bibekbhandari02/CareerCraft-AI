@@ -1,12 +1,13 @@
-﻿import { useEffect } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Globe, FileText } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import SEO from '../components/SEO';
 
 export default function Templates() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState('resume');
 
   // Scroll to top when component mounts
   useEffect(() => {
@@ -90,14 +91,56 @@ export default function Templates() {
 
 
 
-  const handleUseTemplate = (templateId) => {
+  const portfolioTemplates = [
+    {
+      id: 'professional',
+      name: 'Professional',
+      description: 'Elegant glassmorphism design with circular images and gradient accents',
+      features: ['Glassmorphism', 'Circular Images', 'Gradient Buttons', 'Modern'],
+      popular: true,
+      available: true,
+      icon: '💼'
+    },
+    {
+      id: 'modern',
+      name: 'Modern',
+      description: 'Contemporary bento grid layout with clean aesthetics',
+      features: ['Bento Grid', 'Clean Design', 'Modern Layout', 'Responsive'],
+      popular: false,
+      available: true,
+      icon: '✨'
+    },
+    {
+      id: 'creative',
+      name: 'Creative',
+      description: 'Bold and artistic design for creative professionals',
+      features: ['Creative Layout', 'Artistic', 'Unique Design', 'Eye-catching'],
+      popular: false,
+      available: true,
+      icon: '🎨'
+    },
+    {
+      id: 'minimal',
+      name: 'Minimal',
+      description: 'Clean minimalist design focusing on content',
+      features: ['Minimalist', 'Clean', 'Simple', 'Content Focus'],
+      popular: false,
+      available: true,
+      icon: '📄'
+    }
+  ];
+
+  const handleUseTemplate = (templateId, type = 'resume') => {
     if (!user) {
       navigate('/register');
       return;
     }
 
-    // All resume templates are now available
-    navigate(`/resume/new?template=${templateId}`);
+    if (type === 'portfolio') {
+      navigate(`/portfolio/new?template=${templateId}`);
+    } else {
+      navigate(`/resume/new?template=${templateId}`);
+    }
   };
 
   return (
@@ -117,20 +160,52 @@ export default function Templates() {
           <div className="relative">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold mb-3 sm:mb-4 shadow-sm border border-indigo-200">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 animate-pulse" />
-              <span>8 Professional Templates</span>
+              <span>{activeTab === 'resume' ? '8 Resume Templates' : '4 Portfolio Templates'}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent mb-3 sm:mb-4 px-4">
               Choose Your Perfect Template
             </h1>
             <p className="text-sm sm:text-base lg:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-              Select from our professionally designed, ATS-friendly resume templates
+              {activeTab === 'resume' 
+                ? 'Select from our professionally designed, ATS-friendly resume templates'
+                : 'Showcase your work with stunning portfolio designs'
+              }
             </p>
           </div>
         </div>
 
-        {/* Templates Grid - Enhanced */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {resumeTemplates.map((template) => (
+        {/* Tab Switcher */}
+        <div className="flex justify-center mb-8 sm:mb-10 lg:mb-12">
+          <div className="inline-flex bg-white rounded-xl shadow-lg p-1.5 border border-gray-200">
+            <button
+              onClick={() => setActiveTab('resume')}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-lg text-sm sm:text-base font-semibold transition-all duration-300 ${
+                activeTab === 'resume'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Resume Templates</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('portfolio')}
+              className={`flex items-center gap-2 px-6 sm:px-8 py-3 rounded-lg text-sm sm:text-base font-semibold transition-all duration-300 ${
+                activeTab === 'portfolio'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Portfolio Templates</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Resume Templates Grid */}
+        {activeTab === 'resume' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {resumeTemplates.map((template) => (
             <div
               key={template.id}
               className={`group bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 border ${
@@ -705,12 +780,9 @@ export default function Templates() {
               {/* Template Info - Enhanced */}
               <div className="p-4 sm:p-5 lg:p-6 relative">
                 <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{template.icon}</span>
-                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-                      {template.name}
-                    </h3>
-                  </div>
+                  <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                    {template.name}
+                  </h3>
                 </div>
                 <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-2">
                   {template.description}
@@ -750,7 +822,135 @@ export default function Templates() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
+
+        {/* Portfolio Templates Grid */}
+        {activeTab === 'portfolio' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            {portfolioTemplates.map((template) => (
+              <div
+                key={template.id}
+                className={`group bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 border ${
+                  template.popular ? 'ring-2 ring-purple-600 border-purple-200' : 'border-gray-200'
+                }`}
+              >
+                {/* Template Preview */}
+                <div className="relative h-48 sm:h-56 lg:h-64 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden group-hover:scale-105 transition-all duration-300">
+                  {template.popular && (
+                    <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold z-10 shadow-lg flex items-center gap-1 animate-pulse">
+                      <Sparkles className="w-3 h-3" />
+                      Most Popular
+                    </div>
+                  )}
+                  
+                  {/* Mini Portfolio Preview */}
+                  <div className="h-full w-full p-4 flex flex-col">
+                    {/* Mini Navbar */}
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/10">
+                      <div className="h-2 w-12 bg-gradient-to-r from-purple-400 to-pink-400 rounded"></div>
+                      <div className="flex gap-2">
+                        <div className="h-1 w-8 bg-white/40 rounded"></div>
+                        <div className="h-1 w-8 bg-white/40 rounded"></div>
+                        <div className="h-1 w-8 bg-white/40 rounded"></div>
+                      </div>
+                    </div>
+                    
+                    {/* Professional - Glassmorphism style */}
+                    {template.id === 'professional' && (
+                      <div className="flex-1 flex flex-col items-center justify-center space-y-2">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 mb-1"></div>
+                        <div className="h-2 w-20 bg-white/80 rounded"></div>
+                        <div className="h-1.5 w-16 bg-white/60 rounded"></div>
+                        <div className="flex gap-1 mt-2">
+                          <div className="h-6 w-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded"></div>
+                          <div className="h-6 w-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded"></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Modern - Bento Grid style */}
+                    {template.id === 'modern' && (
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div className="col-span-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded p-2">
+                          <div className="h-1.5 w-16 bg-white/80 rounded mb-1"></div>
+                          <div className="h-1 w-12 bg-white/60 rounded"></div>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded p-2">
+                          <div className="h-1 w-8 bg-purple-400 rounded mb-1"></div>
+                          <div className="h-1 w-10 bg-white/60 rounded"></div>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded p-2">
+                          <div className="h-1 w-8 bg-pink-400 rounded mb-1"></div>
+                          <div className="h-1 w-10 bg-white/60 rounded"></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Creative - Artistic style */}
+                    {template.id === 'creative' && (
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl blur-xl opacity-50"></div>
+                          <div className="relative w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl transform rotate-6"></div>
+                          <div className="absolute top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full"></div>
+                          <div className="absolute -bottom-1 -left-2 w-8 h-8 bg-purple-500 rounded-lg transform -rotate-12"></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Minimal - Clean style */}
+                    {template.id === 'minimal' && (
+                      <div className="flex-1 flex flex-col items-center justify-center space-y-3 bg-white p-3 rounded">
+                        <div className="h-2 w-20 bg-gray-900 rounded"></div>
+                        <div className="h-1 w-16 bg-gray-600 rounded"></div>
+                        <div className="w-12 h-px bg-gray-400 my-2"></div>
+                        <div className="space-y-1 w-full">
+                          <div className="h-1 w-full bg-gray-300 rounded"></div>
+                          <div className="h-1 w-full bg-gray-300 rounded"></div>
+                          <div className="h-1 w-3/4 bg-gray-300 rounded"></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Template Info */}
+                <div className="p-4 sm:p-5 lg:p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+                      {template.name}
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm lg:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-2">
+                    {template.description}
+                  </p>
+
+                  {/* Features */}
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-5">
+                    {template.features.map((feature, index) => (
+                      <span
+                        key={index}
+                        className="px-2 sm:px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 text-[10px] sm:text-xs rounded-full border border-purple-200 font-medium"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Action Button */}
+                  <button
+                    onClick={() => handleUseTemplate(template.id, 'portfolio')}
+                    className="w-full py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-md hover:shadow-xl hover:scale-105"
+                  >
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Use This Template</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* CTA Section - Enhanced */}
         <div className="mt-10 sm:mt-12 lg:mt-16 text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 sm:p-10 lg:p-14 text-white relative overflow-hidden shadow-2xl">

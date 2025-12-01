@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Sparkles, Eye, Save, ArrowLeft, Plus, Trash2, Upload, Globe, ExternalLink } from 'lucide-react';
@@ -11,6 +11,7 @@ import { portfolioTemplates } from '../utils/portfolioTemplates';
 export default function PortfolioBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -70,8 +71,14 @@ export default function PortfolioBuilder() {
   useEffect(() => {
     if (id) {
       fetchPortfolio();
+    } else {
+      // Set template from query parameter for new portfolios
+      const templateParam = searchParams.get('template');
+      if (templateParam) {
+        setValue('template', templateParam);
+      }
     }
-  }, [id]);
+  }, [id, searchParams]);
 
   // Keyboard shortcut for live preview (Ctrl/Cmd + P)
   useEffect(() => {

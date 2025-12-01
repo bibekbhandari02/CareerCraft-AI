@@ -90,59 +90,65 @@ export default function CreativeTemplate({ portfolio, content, scrollToSection, 
               className="order-2 text-center lg:text-left"
             >
               {/* Creative Badge */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-6 py-3 mb-8 bg-gradient-to-r from-purple-600/30 to-pink-600/30 border-2 border-purple-500/50 rounded-full backdrop-blur-sm"
-              >
-                <Sparkles size={20} className="text-purple-400 animate-pulse" />
-                <span className="text-transparent bg-clip-text theme-gradient font-bold text-base sm:text-lg">
-                  {content.hero?.subtitle || 'Creative Professional'}
-                </span>
-              </motion.div>
+              {content.hero?.subtitle && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-2 px-6 py-3 mb-8 bg-gradient-to-r from-purple-600/30 to-pink-600/30 border-2 border-purple-500/50 rounded-full backdrop-blur-sm"
+                >
+                  <Sparkles size={20} className="text-purple-400 animate-pulse" />
+                  <span className="text-transparent bg-clip-text theme-gradient font-bold text-base sm:text-lg">
+                    {content.hero.subtitle}
+                  </span>
+                </motion.div>
+              )}
 
               {/* Big Punchy Headline with Rotation */}
-              <motion.h1
-                initial={{ opacity: 0, y: 20, rotate: -5 }}
-                animate={{ opacity: 1, y: 0, rotate: 0 }}
-                transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-black mb-6 sm:mb-8 leading-none"
-              >
-                <motion.span 
-                  className="text-white block mb-2"
-                  animate={{ 
-                    textShadow: [
-                      "0 0 20px rgba(168, 85, 247, 0.4)",
-                      "0 0 40px rgba(236, 72, 153, 0.4)",
-                      "0 0 20px rgba(168, 85, 247, 0.4)"
-                    ]
-                  }}
-                  transition={{ duration: 3, repeat: Infinity }}
+              {content.hero?.title && (
+                <motion.h1
+                  initial={{ opacity: 0, y: 20, rotate: -5 }}
+                  animate={{ opacity: 1, y: 0, rotate: 0 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 100 }}
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-black mb-6 sm:mb-8 leading-none"
                 >
-                  {content.hero?.title?.split(' ')[0]}
-                </motion.span>
-                <motion.span 
-                  className="text-transparent bg-clip-text theme-gradient block"
-                  animate={{ 
-                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
-                  }}
-                  transition={{ duration: 5, repeat: Infinity }}
-                  style={{ backgroundSize: "200% 200%" }}
-                >
-                  {content.hero?.title?.split(' ').slice(1).join(' ')}
-                </motion.span>
-              </motion.h1>
+                  <motion.span 
+                    className="text-white block mb-2"
+                    animate={{ 
+                      textShadow: [
+                        "0 0 20px rgba(168, 85, 247, 0.4)",
+                        "0 0 40px rgba(236, 72, 153, 0.4)",
+                        "0 0 20px rgba(168, 85, 247, 0.4)"
+                      ]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    {content.hero.title.split(' ')[0]}
+                  </motion.span>
+                  <motion.span 
+                    className="text-transparent bg-clip-text theme-gradient block"
+                    animate={{ 
+                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
+                    }}
+                    transition={{ duration: 5, repeat: Infinity }}
+                    style={{ backgroundSize: "200% 200%" }}
+                  >
+                    {content.hero.title.split(' ').slice(1).join(' ')}
+                  </motion.span>
+                </motion.h1>
+              )}
 
               {/* Tagline */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-base sm:text-lg md:text-xl lg:text-xl text-gray-300 mb-8 sm:mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 text-center lg:text-left"
-              >
-                {content.hero?.description}
-              </motion.p>
+              {content.hero?.description && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-base sm:text-lg md:text-xl lg:text-xl text-gray-300 mb-8 sm:mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 text-center lg:text-left"
+                >
+                  {content.hero.description}
+                </motion.p>
+              )}
 
               {/* Creative CTAs */}
               <motion.div
@@ -431,6 +437,7 @@ export default function CreativeTemplate({ portfolio, content, scrollToSection, 
       )}
 
       {/* CONTACT - Artistic Form */}
+      {(content.contact?.email || content.contact?.phone || content.contact?.linkedin || content.contact?.github) && (
       <section id="contact" className="relative py-20 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-12 z-10">
         <div className="container mx-auto max-w-5xl">
           <motion.div 
@@ -520,6 +527,7 @@ export default function CreativeTemplate({ portfolio, content, scrollToSection, 
           </motion.div>
         </div>
       </section>
+      )}
     </>
   );
 }

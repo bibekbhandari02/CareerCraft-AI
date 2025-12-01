@@ -36,19 +36,25 @@ export default function ProfessionalTemplate({ portfolio, content, scrollToSecti
               transition={{ duration: 0.7 }}
               className={`${portfolio.profileImageUrl ? 'lg:col-span-8' : 'lg:col-span-12'} text-center ${portfolio.profileImageUrl ? 'lg:text-left' : ''}`}
             >
-              <div className="inline-block mb-3 sm:mb-4 md:mb-5 backdrop-blur-md bg-white/5 border border-white/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full text-gray-300">
-                {content.hero?.subtitle || 'Portfolio'}
-              </div>
+              {content.hero?.subtitle && (
+                <div className="inline-block mb-3 sm:mb-4 md:mb-5 backdrop-blur-md bg-white/5 border border-white/10 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full text-gray-300">
+                  {content.hero.subtitle}
+                </div>
+              )}
               
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 sm:mb-5 md:mb-6 leading-tight">
-                <span className="text-transparent bg-clip-text theme-gradient">
-                  {content.hero?.title}
-                </span>
-              </h1>
+              {content.hero?.title && (
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-4 sm:mb-5 md:mb-6 leading-tight">
+                  <span className="text-transparent bg-clip-text theme-gradient">
+                    {content.hero.title}
+                  </span>
+                </h1>
+              )}
               
-              <p className="text-gray-300 text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-7 md:mb-8 leading-relaxed text-center lg:text-justify max-w-3xl mx-auto lg:mx-0">
-                {content.hero?.description}
-              </p>
+              {content.hero?.description && (
+                <p className="text-gray-300 text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-7 md:mb-8 leading-relaxed text-center lg:text-justify max-w-3xl mx-auto lg:mx-0">
+                  {content.hero.description}
+                </p>
+              )}
 
               <div className={`flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 ${portfolio.profileImageUrl ? 'justify-center lg:justify-start' : 'justify-center'}`}>
                 {content.contact?.email && (
@@ -331,6 +337,7 @@ export default function ProfessionalTemplate({ portfolio, content, scrollToSecti
       )}
 
       {/* Contact Section */}
+      {(content.contact?.email || content.contact?.phone || content.contact?.linkedin || content.contact?.github) && (
       <section id="contact" className="relative py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-12 z-10">
         <div className="container mx-auto max-w-7xl">
           <div className="hidden md:block text-center mb-8 sm:mb-10 md:mb-12">
@@ -484,6 +491,7 @@ export default function ProfessionalTemplate({ portfolio, content, scrollToSecti
           </div>
         </div>
       </section>
+      )}
     </>
   );
 }

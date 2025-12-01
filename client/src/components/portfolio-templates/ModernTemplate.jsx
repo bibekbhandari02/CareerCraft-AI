@@ -37,38 +37,44 @@ export default function ModernTemplate({ portfolio, content, scrollToSection, pr
               className="text-center lg:text-left order-2 lg:order-1"
             >
               {/* Badge */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 mb-6 backdrop-blur-md bg-white/10 border border-white/20 rounded-full"
-              >
-                <Sparkles size={16} className="text-purple-400" />
-                <span className="text-sm font-medium text-gray-300">{content.hero?.subtitle || 'Full Stack Developer'}</span>
-              </motion.div>
+              {content.hero?.subtitle && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 mb-6 backdrop-blur-md bg-white/10 border border-white/20 rounded-full"
+                >
+                  <Sparkles size={16} className="text-purple-400" />
+                  <span className="text-sm font-medium text-gray-300">{content.hero.subtitle}</span>
+                </motion.div>
+              )}
 
               {/* Big Heading with Gradient */}
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-black mb-6 leading-tight"
-              >
-                <span className="block text-white">Hi, I'm</span>
-                <span className="block text-transparent bg-clip-text theme-gradient">
-                  {content.hero?.title || 'Your Name'}
-                </span>
-              </motion.h1>
+              {content.hero?.title && (
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-black mb-6 leading-tight"
+                >
+                  <span className="block text-white">Hi, I'm</span>
+                  <span className="block text-transparent bg-clip-text theme-gradient">
+                    {content.hero.title}
+                  </span>
+                </motion.h1>
+              )}
 
               {/* Description */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-base sm:text-lg lg:text-xl text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-center lg:text-left"
-              >
-                {content.hero?.description}
-              </motion.p>
+              {content.hero?.description && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-base sm:text-lg lg:text-xl text-gray-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-center lg:text-left"
+                >
+                  {content.hero.description}
+                </motion.p>
+              )}
 
               {/* CTA Buttons */}
               <motion.div
@@ -358,6 +364,7 @@ export default function ModernTemplate({ portfolio, content, scrollToSection, pr
       )}
 
       {/* CONTACT - Centered Form */}
+      {(content.contact?.email || content.contact?.phone || content.contact?.linkedin || content.contact?.github) && (
       <section id="contact" className="relative py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-12 z-10">
         <div className="container mx-auto max-w-4xl">
           <motion.div
@@ -431,6 +438,7 @@ export default function ModernTemplate({ portfolio, content, scrollToSection, pr
           </motion.div>
         </div>
       </section>
+      )}
     </>
   );
 }
