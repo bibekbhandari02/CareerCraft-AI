@@ -32,6 +32,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://portfolio-builder-client-9ejw.onrender.com',
   'https://portfolio-builder-client.onrender.com',
+  'https://portfolio-builder-api-vzyr.onrender.com',
   process.env.CLIENT_URL
 ].filter(Boolean);
 
