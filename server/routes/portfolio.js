@@ -28,11 +28,26 @@ router.get('/public/:subdomain', async (req, res) => {
     const portfolio = await Portfolio.findOne({ 
       subdomain: req.params.subdomain,
       published: true 
-    });
+    }).lean();
     
     if (!portfolio) {
       return res.status(404).json({ error: 'Portfolio not found' });
     }
+    
+    // Ensure all new fields have default values for backward compatibility
+    if (!portfolio.content) portfolio.content = {};
+    if (!portfolio.content.hero) portfolio.content.hero = {};
+    if (!portfolio.content.hero.roles) portfolio.content.hero.roles = [];
+    if (!portfolio.content.aboutSubtitle) portfolio.content.aboutSubtitle = '';
+    if (!portfolio.content.personalNote) portfolio.content.personalNote = '';
+    if (!portfolio.content.whatIDo) portfolio.content.whatIDo = [];
+    if (!portfolio.content.education) portfolio.content.education = [];
+    if (!portfolio.content.certifications) portfolio.content.certifications = [];
+    if (!portfolio.content.stats) portfolio.content.stats = [];
+    if (!portfolio.content.services) portfolio.content.services = [];
+    if (!portfolio.content.skills) portfolio.content.skills = [];
+    if (!portfolio.content.projects) portfolio.content.projects = [];
+    if (!portfolio.content.testimonials) portfolio.content.testimonials = [];
     
     // Create a unique key for this view (IP + portfolio ID)
     const viewKey = `${req.ip || req.headers['x-forwarded-for']}_${portfolio._id}`;
@@ -43,9 +58,8 @@ router.get('/public/:subdomain', async (req, res) => {
     const shouldTrack = !lastView || (now - lastView) > VIEW_COOLDOWN;
     
     if (shouldTrack) {
-      // Increment views
-      portfolio.views += 1;
-      await portfolio.save();
+      // Increment views (using findByIdAndUpdate since we used .lean())
+      await Portfolio.findByIdAndUpdate(portfolio._id, { $inc: { views: 1 } });
       
       // Track portfolio view (for portfolio owner's analytics)
       if (portfolio.userId) {
@@ -120,6 +134,9 @@ router.post('/', authenticate, checkCredits('portfolio'), async (req, res) => {
 // Update portfolio
 router.put('/:id', authenticate, async (req, res) => {
   try {
+    // Debug: Log testimonials being received
+    console.log('Testimonials received in update:', req.body.content?.testimonials);
+    
     const portfolio = await Portfolio.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       req.body,
@@ -130,8 +147,12 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'Portfolio not found' });
     }
 
+    // Debug: Log testimonials after save
+    console.log('Testimonials after save:', portfolio.content?.testimonials);
+
     res.json({ portfolio });
   } catch (error) {
+    console.error('Error updating portfolio:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

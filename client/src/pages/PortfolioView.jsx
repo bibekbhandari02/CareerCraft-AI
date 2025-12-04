@@ -71,6 +71,7 @@ import ModernTemplate from '../components/portfolio-templates/ModernTemplate';
 import MinimalTemplate from '../components/portfolio-templates/MinimalTemplate';
 import CreativeTemplate from '../components/portfolio-templates/CreativeTemplate';
 import ProfessionalTemplate from '../components/portfolio-templates/ProfessionalTemplate';
+import PortfolioNavbar from '../components/PortfolioNavbar';
 import { getSkillIcon } from '../utils/skillIcons';
 
 export default function PortfolioView() {
@@ -182,9 +183,14 @@ export default function PortfolioView() {
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const offset = 80;
-      const elementPosition = element.offsetTop - offset;
-      window.scrollTo({ top: elementPosition, behavior: 'smooth' });
+      const navbarHeight = 80; // Adjust based on your navbar height
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - navbarHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -267,22 +273,25 @@ export default function PortfolioView() {
         <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl" style={{ backgroundColor: 'var(--theme-glow)' }}></div>
       </div>
 
-      {/* Scroll Progress Bar */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 origin-left z-50"
-        style={{ 
-          scaleX, 
-          height: '2px',
-          backgroundColor: 'var(--theme-primary)',
-          boxShadow: 'none'
-        }}
-      />
+      {/* Scroll Progress Bar - Hide for professional, modern, minimal, and creative templates */}
+      {portfolio.template !== 'professional' && portfolio.template !== 'modern' && portfolio.template !== 'minimal' && portfolio.template !== 'creative' && (
+        <motion.div
+          className="fixed top-0 left-0 right-0 origin-left z-50"
+          style={{ 
+            scaleX, 
+            height: '2px',
+            backgroundColor: 'var(--theme-primary)',
+            boxShadow: 'none'
+          }}
+        />
+      )}
 
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 backdrop-blur-sm z-[100]" style={{ 
-        backgroundColor: portfolio.template === 'minimal' ? 'rgba(255, 255, 255, 0.9)' : 'var(--theme-background)E6', 
-        borderBottom: portfolio.template === 'minimal' ? '1px solid #e5e5e5' : '1px solid var(--theme-border)' 
-      }}>
+      {/* Navbar - Hide for professional, modern, minimal, and creative templates (they have their own) */}
+      {portfolio.template !== 'professional' && portfolio.template !== 'modern' && portfolio.template !== 'minimal' && portfolio.template !== 'creative' && (
+        <nav className="fixed top-0 left-0 right-0 backdrop-blur-sm z-[100]" style={{ 
+          backgroundColor: portfolio.template === 'minimal' ? 'rgba(255, 255, 255, 0.9)' : 'var(--theme-background)E6', 
+          borderBottom: portfolio.template === 'minimal' ? '1px solid #e5e5e5' : '1px solid var(--theme-border)' 
+        }}>
         <div className="container mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
           <button
             onClick={() => scrollToSection('home')}
@@ -472,6 +481,7 @@ export default function PortfolioView() {
           )}
         </AnimatePresence>
       </nav>
+      )}
 
       {/* Render Complete Template */}
       {(() => {
@@ -506,8 +516,8 @@ export default function PortfolioView() {
         }
       })()}
 
-      {/* Footer - Show for all templates except Minimal */}
-      {portfolio.template !== 'minimal' && (
+      {/* Footer - Show for all templates except Minimal, Professional, Modern, and Creative (they have their own footers) */}
+      {portfolio.template !== 'minimal' && portfolio.template !== 'professional' && portfolio.template !== 'modern' && portfolio.template !== 'creative' && (
       <footer className="relative py-6 text-gray-400 border-t border-gray-800 z-10">
         <div className="px-6 md:px-12">
           {/* Top Section */}
@@ -646,17 +656,19 @@ export default function PortfolioView() {
       </footer>
       )}
 
-      {/* Scroll to Top Button */}
-      <button
-        onClick={scrollToTop}
-        className={`fixed bottom-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white rounded-full transition-all duration-300 shadow-lg theme-gradient ${
-          showScrollTop
-            ? 'opacity-100 scale-100'
-            : 'opacity-0 scale-90 pointer-events-none'
-        } hover:scale-110`}
-      >
-        <ArrowUp className="text-xl" />
-      </button>
+      {/* Scroll to Top Button - Hide only for minimal template */}
+      {portfolio.template !== 'minimal' && (
+        <button
+          onClick={scrollToTop}
+          className={`fixed bottom-6 right-6 z-50 w-12 h-12 flex items-center justify-center text-white rounded-full transition-all duration-300 shadow-lg theme-gradient ${
+            showScrollTop
+              ? 'opacity-100 scale-100'
+              : 'opacity-0 scale-90 pointer-events-none'
+          } hover:scale-110`}
+        >
+          <ArrowUp className="text-xl" />
+        </button>
+      )}
 
       {/* Project Modal */}
       <AnimatePresence>

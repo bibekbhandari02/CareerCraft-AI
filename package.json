@@ -4,7 +4,6 @@
   "description": "AI-powered Resume Builder and Portfolio Generator SaaS",
   "main": "server/index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
     "build": "cd client && npm run build",

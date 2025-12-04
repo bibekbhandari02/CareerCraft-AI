@@ -28,14 +28,20 @@ const safeGetIcon = (library, iconName, className) => {
  * Get icon component for a skill name
  * @param {string} skill - The skill name
  * @param {string} size - Icon size class (default: 'text-xl')
+ * @param {boolean} isDarkBg - Whether the background is dark (default: false)
  * @returns {JSX.Element} Icon component
  */
-export const getSkillIcon = (skill, size = 'text-xl') => {
+export const getSkillIcon = (skill, size = 'text-xl', isDarkBg = false) => {
   const skillLower = skill.toLowerCase().trim();
+  
+  // For icons that are originally white/black, use adaptive colors
+  const adaptiveWhite = isDarkBg ? 'text-white' : 'text-gray-900';
+  const adaptiveBlack = isDarkBg ? 'text-gray-300' : 'text-gray-900';
   
   // Icon mapping: [iconLibrary, iconName, color]
   const iconMap = {
     // AI/ML & Data Science
+    'openai': [SiIcons, 'SiOpenai', 'text-[#10A37F]'],
     'tensorflow': [SiIcons, 'SiTensorflow', 'text-orange-500'],
     'pytorch': [SiIcons, 'SiPytorch', 'text-red-500'],
     'scikit': [SiIcons, 'SiScikitlearn', 'text-orange-400'],
@@ -61,22 +67,24 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'deep learning': [FaIcons, 'FaProjectDiagram', 'text-purple-600'],
     
     // Frontend Frameworks
-    'react native': [FaIcons, 'FaReact', 'text-cyan-400'],
-    'react': [FaIcons, 'FaReact', 'text-cyan-400'],
+    'react native': [FaIcons, 'FaReact', 'text-[#61dafb]'],
+    'react': [FaIcons, 'FaReact', 'text-[#61dafb]'],
+    'framer': [SiIcons, 'SiFramer', 'text-[#0055FF]'],
+    'framer motion': [SiIcons, 'SiFramer', 'text-[#0055FF]'],
     'vue': [FaIcons, 'FaVuejs', 'text-green-500'],
     'vuejs': [FaIcons, 'FaVuejs', 'text-green-500'],
     'angular': [FaIcons, 'FaAngular', 'text-red-600'],
     'svelte': [SiIcons, 'SiSvelte', 'text-orange-500'],
-    'next': [SiIcons, 'SiNextdotjs', 'text-white'],
-    'nextjs': [SiIcons, 'SiNextdotjs', 'text-white'],
+    'next': [SiIcons, 'SiNextdotjs', adaptiveWhite],
+    'nextjs': [SiIcons, 'SiNextdotjs', adaptiveWhite],
     'nuxt': [SiIcons, 'SiNuxtdotjs', 'text-green-400'],
     'gatsby': [SiIcons, 'SiGatsby', 'text-purple-600'],
     'remix': [SiIcons, 'SiRemix', 'text-blue-400'],
     'jquery': [SiIcons, 'SiJquery', 'text-blue-500'],
     
     // Languages
-    'javascript': [SiIcons, 'SiJavascript', 'text-yellow-400'],
-    'js': [SiIcons, 'SiJavascript', 'text-yellow-400'],
+    'javascript': [FaIcons, 'FaJsSquare', 'text-[#f7df1e]'],
+    'js': [FaIcons, 'FaJsSquare', 'text-[#f7df1e]'],
     'typescript': [SiIcons, 'SiTypescript', 'text-blue-600'],
     'ts': [SiIcons, 'SiTypescript', 'text-blue-600'],
     'python': [FaIcons, 'FaPython', 'text-[#3776AB]'],
@@ -94,26 +102,35 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'kotlin': [SiIcons, 'SiKotlin', 'text-purple-500'],
     
     // HTML & CSS
-    'html': [FaIcons, 'FaHtml5', 'text-orange-500'],
-    'css': [FaIcons, 'FaCss3Alt', 'text-blue-500'],
+    'html': [FaIcons, 'FaHtml5', 'text-[#e34c26]'],
+    'html5': [FaIcons, 'FaHtml5', 'text-[#e34c26]'],
+    'css': [FaIcons, 'FaCss3Alt', 'text-[#2965f1]'],
+    'css3': [FaIcons, 'FaCss3Alt', 'text-[#2965f1]'],
     'sass': [FaIcons, 'FaSass', 'text-pink-500'],
     'scss': [FaIcons, 'FaSass', 'text-pink-500'],
     'less': [SiIcons, 'SiLess', 'text-blue-600'],
-    'tailwind': [SiIcons, 'SiTailwindcss', 'text-teal-400'],
+    'tailwind': [SiIcons, 'SiTailwindcss', 'text-[#38B2AC]'],
+    'tailwind css': [SiIcons, 'SiTailwindcss', 'text-[#38B2AC]'],
     'bootstrap': [FaIcons, 'FaBootstrap', 'text-purple-600'],
     'material': [SiIcons, 'SiMaterialdesign', 'text-blue-500'],
+    'material design': [SiIcons, 'SiMaterialdesign', 'text-blue-500'],
     'mui': [SiIcons, 'SiMui', 'text-blue-500'],
     'chakra': [SiIcons, 'SiChakraui', 'text-teal-400'],
     'ant design': [SiIcons, 'SiAntdesign', 'text-red-500'],
     
     // Backend
-    'node': [FaIcons, 'FaNodeJs', 'text-green-500'],
-    'nodejs': [FaIcons, 'FaNodeJs', 'text-green-500'],
-    'express': [SiIcons, 'SiExpress', 'text-white'],
+    'node': [SiIcons, 'SiNodedotjs', 'text-[#3C873A]'],
+    'nodejs': [SiIcons, 'SiNodedotjs', 'text-[#3C873A]'],
+    'node.js': [SiIcons, 'SiNodedotjs', 'text-[#3C873A]'],
+    'express': [SiIcons, 'SiExpress', adaptiveBlack],
+    'express.js': [SiIcons, 'SiExpress', adaptiveBlack],
+    'socket': [SiIcons, 'SiSocketdotio', adaptiveBlack],
+    'socket.io': [SiIcons, 'SiSocketdotio', adaptiveBlack],
+    'socketio': [SiIcons, 'SiSocketdotio', adaptiveBlack],
     'nest': [SiIcons, 'SiNestjs', 'text-red-500'],
     'nestjs': [SiIcons, 'SiNestjs', 'text-red-500'],
     'django': [SiIcons, 'SiDjango', 'text-green-700'],
-    'flask': [SiIcons, 'SiFlask', 'text-white'],
+    'flask': [SiIcons, 'SiFlask', adaptiveBlack],
     'spring': [SiIcons, 'SiSpring', 'text-green-500'],
     'laravel': [SiIcons, 'SiLaravel', 'text-red-600'],
     'rails': [SiIcons, 'SiRubyonrails', 'text-red-500'],
@@ -121,8 +138,8 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'dotnet': [SiIcons, 'SiDotnet', 'text-purple-600'],
     
     // Databases
-    'mongodb': [SiIcons, 'SiMongodb', 'text-green-500'],
-    'mongo': [SiIcons, 'SiMongodb', 'text-green-500'],
+    'mongodb': [SiIcons, 'SiMongodb', 'text-[#4DB33D]'],
+    'mongo': [SiIcons, 'SiMongodb', 'text-[#4DB33D]'],
     'postgresql': [SiIcons, 'SiPostgresql', 'text-blue-400'],
     'postgres': [SiIcons, 'SiPostgresql', 'text-blue-400'],
     'mysql': [SiIcons, 'SiMysql', 'text-blue-500'],
@@ -144,7 +161,7 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'gcp': [SiIcons, 'SiGooglecloud', 'text-blue-400'],
     'google cloud': [SiIcons, 'SiGooglecloud', 'text-blue-400'],
     'heroku': [SiIcons, 'SiHeroku', 'text-purple-600'],
-    'vercel': [SiIcons, 'SiVercel', 'text-white'],
+    'vercel': [SiIcons, 'SiVercel', adaptiveBlack],
     'netlify': [SiIcons, 'SiNetlify', 'text-teal-400'],
     'terraform': [SiIcons, 'SiTerraform', 'text-purple-600'],
     'jenkins': [SiIcons, 'SiJenkins', 'text-red-500'],
@@ -153,7 +170,7 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     
     // Tools
     'git': [FaIcons, 'FaGitAlt', 'text-orange-500'],
-    'github': [FaIcons, 'FaGithub', 'text-white'],
+    'github': [FaIcons, 'FaGithub', adaptiveBlack],
     'npm': [FaIcons, 'FaNpm', 'text-red-600'],
     'yarn': [FaIcons, 'FaYarn', 'text-blue-400'],
     'pnpm': [SiIcons, 'SiPnpm', 'text-yellow-500'],
@@ -170,7 +187,7 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'vitest': [SiIcons, 'SiVitest', 'text-yellow-500'],
     
     // State Management
-    'redux': [SiIcons, 'SiRedux', 'text-purple-500'],
+    'redux': [SiIcons, 'SiRedux', 'text-[#764ABC]'],
     'mobx': [SiIcons, 'SiMobx', 'text-orange-500'],
     'zustand': [SiIcons, 'SiZustand', 'text-orange-600'],
     'recoil': [SiIcons, 'SiRecoil', 'text-blue-500'],
@@ -178,7 +195,7 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     // Mobile
     'flutter': [SiIcons, 'SiFlutter', 'text-blue-400'],
     'android': [SiIcons, 'SiAndroid', 'text-green-500'],
-    'ios': [FaIcons, 'FaApple', 'text-white'],
+    'ios': [FaIcons, 'FaApple', adaptiveBlack],
     
     // Design
     'figma': [FaIcons, 'FaFigma', 'text-purple-500'],
@@ -186,11 +203,14 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'photoshop': [SiIcons, 'SiAdobephotoshop', 'text-blue-600'],
     'illustrator': [SiIcons, 'SiAdobeillustrator', 'text-orange-600'],
     
-    // APIs
+    // APIs & Services
     'graphql': [SiIcons, 'SiGraphql', 'text-pink-500'],
     'rest': [FaIcons, 'FaServer', 'text-green-500'],
     'restful': [FaIcons, 'FaServer', 'text-green-500'],
     'postman': [SiIcons, 'SiPostman', 'text-orange-500'],
+    'google maps': [SiIcons, 'SiGooglemaps', 'text-[#4285F4]'],
+    'google maps api': [SiIcons, 'SiGooglemaps', 'text-[#4285F4]'],
+    'google auth': [FaIcons, 'FaGoogle', 'text-[#DB4437]'],
     
     // CMS
     'wordpress': [SiIcons, 'SiWordpress', 'text-blue-600'],
@@ -200,9 +220,18 @@ export const getSkillIcon = (skill, size = 'text-xl') => {
     'linux': [FaIcons, 'FaLinux', 'text-yellow-400'],
   };
   
-  // Try to find exact match first
-  for (const [key, [library, iconName, color]] of Object.entries(iconMap)) {
+  // Try exact match first
+  if (iconMap[skillLower]) {
+    const [library, iconName, color] = iconMap[skillLower];
+    const icon = safeGetIcon(library, iconName, `${color} ${size}`);
+    if (icon) return icon;
+  }
+  
+  // Try to find partial match, but sort by length (longest first to avoid false matches)
+  const sortedKeys = Object.keys(iconMap).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
     if (skillLower.includes(key)) {
+      const [library, iconName, color] = iconMap[key];
       const icon = safeGetIcon(library, iconName, `${color} ${size}`);
       if (icon) return icon;
     }

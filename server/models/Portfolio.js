@@ -34,22 +34,65 @@ const portfolioSchema = new mongoose.Schema({
     hero: {
       title: String,
       subtitle: String,
-      description: String
+      description: String,
+      roles: [String]
     },
     about: String,
+    aboutSubtitle: String,
+    personalNote: String,
+    whatIDo: [String],
+    education: [{
+      title: String,
+      institution: String,
+      year: String
+    }],
+    certifications: [{
+      title: String,
+      institution: String,
+      date: String
+    }],
+    stats: [{
+      number: Number,
+      suffix: String,
+      label: String
+    }],
     skills: [{
       category: String,
       items: [String]
+    }],
+    services: [{
+      id: Number,
+      title: String,
+      description: String,
+      icon: String,
+      badge: String,
+      deliverables: [String]
     }],
     projects: [{
       name: String,
       description: String,
       image: String,
       technologies: [String],
+      features: [String],
       liveLink: String,
       githubLink: String,
-      tag: String
+      tags: [String]
     }],
+    testimonials: [{
+      name: String,
+      role: String,
+      company: String,
+      image: String,
+      text: String,
+      rating: {
+        type: Number,
+        default: 5,
+        min: 1,
+        max: 5
+      },
+      projectType: String
+    }],
+    footerDescription: String,
     contact: {
       email: String,
       phone: String,

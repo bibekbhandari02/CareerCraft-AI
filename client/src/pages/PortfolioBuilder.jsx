@@ -38,11 +38,21 @@ export default function PortfolioBuilder() {
         hero: {
           title: '',
           subtitle: '',
-          description: ''
+          description: '',
+          roles: ''
         },
         about: '',
+        aboutSubtitle: '',
+        personalNote: '',
+        whatIDo: '',
+        education: '',
+        certifications: '',
+        stats: '',
         skills: [],
+        services: [],
         projects: [],
+        testimonials: [],
+        footerDescription: '',
         contact: {
           email: '',
           phone: '',
@@ -63,9 +73,19 @@ export default function PortfolioBuilder() {
     name: 'content.skills'
   });
 
+  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
+    control,
+    name: 'content.services'
+  });
+
   const { fields: projectFields, append: appendProject, remove: removeProject } = useFieldArray({
     control,
     name: 'content.projects'
+  });
+
+  const { fields: testimonialFields, append: appendTestimonial, remove: removeTestimonial } = useFieldArray({
+    control,
+    name: 'content.testimonials'
   });
 
   useEffect(() => {
@@ -102,6 +122,58 @@ export default function PortfolioBuilder() {
       // Store views separately
       setPortfolioViews(portfolio.views || 0);
       
+      // Convert hero roles array to newline-separated string
+      if (portfolio.content?.hero?.roles && Array.isArray(portfolio.content.hero.roles)) {
+        portfolio.content.hero.roles = portfolio.content.hero.roles.join('\n');
+      }
+      
+      // Convert "What I Do" array to newline-separated string
+      if (portfolio.content?.whatIDo && Array.isArray(portfolio.content.whatIDo)) {
+        portfolio.content.whatIDo = portfolio.content.whatIDo.join('\n');
+      }
+      
+      // Convert education array to newline-separated "Title | Institution | Year" format
+      if (portfolio.content?.education && Array.isArray(portfolio.content.education) && portfolio.content.education.length > 0) {
+        portfolio.content.education = portfolio.content.education
+          .filter(edu => edu.title || edu.institution || edu.year) // Only include non-empty entries
+          .map(edu => `${edu.title || ''} | ${edu.institution || ''} | ${edu.year || ''}`)
+          .join('\n');
+      } else {
+        portfolio.content.education = '';
+      }
+      
+      // Convert certifications array to newline-separated "Title | Institution | Date" format
+      if (portfolio.content?.certifications && Array.isArray(portfolio.content.certifications) && portfolio.content.certifications.length > 0) {
+        portfolio.content.certifications = portfolio.content.certifications
+          .filter(cert => cert.title || cert.institution || cert.date) // Only include non-empty entries
+          .map(cert => `${cert.title || ''} | ${cert.institution || ''} | ${cert.date || ''}`)
+          .join('\n');
+      } else {
+        portfolio.content.certifications = '';
+      }
+      
+      // Convert stats array to newline-separated "Number | Suffix | Label" format
+      if (portfolio.content?.stats && Array.isArray(portfolio.content.stats) && portfolio.content.stats.length > 0) {
+        portfolio.content.stats = portfolio.content.stats
+          .filter(stat => stat.label) // Only include entries with labels
+          .map(stat => `${stat.number || 0} | ${stat.suffix || ''} | ${stat.label || ''}`)
+          .join('\n');
+      } else {
+        portfolio.content.stats = '';
+      }
+      
+      // Convert services deliverables array to newline-separated string
+      if (portfolio.content?.services && Array.isArray(portfolio.content.services) && portfolio.content.services.length > 0) {
+        portfolio.content.services = portfolio.content.services.map(service => ({
+          ...service,
+          deliverables: Array.isArray(service.deliverables) 
+            ? service.deliverables.join('\n')
+            : service.deliverables || ''
+        }));
+      } else {
+        portfolio.content.services = [];
+      }
+      
       // Convert arrays to comma-separated strings for form inputs
       if (portfolio.content?.skills) {
         portfolio.content.skills = portfolio.content.skills.map(skill => ({
@@ -115,8 +187,16 @@ export default function PortfolioBuilder() {
           ...project,
           technologies: Array.isArray(project.technologies) 
             ? project.technologies.join(', ') 
-            : project.technologies
+            : project.technologies,
+          features: Array.isArray(project.features)
+            ? project.features.join('\n')
+            : project.features || ''
         }));
+      }
+      
+      // Ensure testimonials array exists
+      if (!portfolio.content?.testimonials) {
+        portfolio.content.testimonials = [];
       }
       
       if (portfolio.seo?.keywords && Array.isArray(portfolio.seo.keywords)) {
@@ -149,20 +229,72 @@ export default function PortfolioBuilder() {
       // Parse AI response
       const content = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
       
+      // Detect what user wants to update based on prompt
+      const lowerPrompt = prompt.toLowerCase();
+      const isFillAll = lowerPrompt.includes('fill') || lowerPrompt.includes('generate all') || lowerPrompt.includes('complete');
+      
+      // Check for multiple items in prompt
+      const mentionsAbout = lowerPrompt.includes('about');
+      const mentionsHero = lowerPrompt.includes('hero');
+      const mentionsSkills = lowerPrompt.includes('skill') || lowerPrompt.includes('frontend') || lowerPrompt.includes('backend') || lowerPrompt.includes('technology');
+      const mentionsProjects = lowerPrompt.includes('project');
+      const mentionsServices = lowerPrompt.includes('service');
+      const mentionsTestimonials = lowerPrompt.includes('testimonial');
+      const mentionsContact = lowerPrompt.includes('contact');
+      
+      // Count how many things are mentioned
+      const mentionCount = [mentionsAbout, mentionsHero, mentionsSkills, mentionsProjects, mentionsServices, mentionsTestimonials, mentionsContact].filter(Boolean).length;
+      const isMultipleItems = mentionCount > 1;
+      
+      // Only update fields that have meaningful content or if it's a fill-all request
+      const shouldUpdate = (field, value) => {
+        if (isFillAll) return true; // Update everything for fill-all
+        
+        // If multiple items mentioned, check if this field is one of them
+        if (isMultipleItems) {
+          if (mentionsAbout && (field.includes('about') || field.includes('personalNote') || field.includes('whatIDo') || field.includes('education') || field.includes('certification') || field.includes('stats'))) return true;
+          if (mentionsHero && field.includes('hero')) return true;
+          if (mentionsSkills && field.includes('skills')) return true;
+          if (mentionsProjects && field.includes('projects')) return true;
+          if (mentionsServices && field.includes('services')) return true;
+          if (mentionsTestimonials && field.includes('testimonials')) return true;
+          if (mentionsContact && field.includes('contact')) return true;
+          return false; // Don't update other fields
+        }
+        
+        // Single item mentioned
+        if (mentionsAbout && !mentionsHero && !mentionsProjects) return field.includes('about') || field.includes('personalNote') || field.includes('whatIDo') || field.includes('education') || field.includes('certification') || field.includes('stats');
+        if (mentionsHero && !mentionsAbout) return field.includes('hero');
+        if (mentionsSkills && !mentionsProjects && !mentionsAbout) return field.includes('skills');
+        if (mentionsProjects && !mentionsSkills && !mentionsAbout) return field.includes('projects');
+        if (mentionsServices && !mentionsProjects) return field.includes('services');
+        if (mentionsTestimonials) return field.includes('testimonials');
+        if (mentionsContact) return field.includes('contact');
+        
+        // Default: only update if value is not empty
+        return value && value !== '' && (!Array.isArray(value) || value.length > 0);
+      };
+      
       // Update hero section
-      if (content.hero) {
-        setValue('content.hero.title', content.hero.title || currentData.content?.hero?.title || '');
-        setValue('content.hero.subtitle', content.hero.subtitle || currentData.content?.hero?.subtitle || '');
-        setValue('content.hero.description', content.hero.description || currentData.content?.hero?.description || '');
+      if (content.hero && shouldUpdate('hero', content.hero)) {
+        if (content.hero.title) setValue('content.hero.title', content.hero.title);
+        if (content.hero.subtitle) setValue('content.hero.subtitle', content.hero.subtitle);
+        if (content.hero.description) setValue('content.hero.description', content.hero.description);
+        if (content.hero.roles) setValue('content.hero.roles', content.hero.roles);
       }
       
-      // Update about section
-      if (content.about) {
-        setValue('content.about', content.about);
-      }
+      // Update about sections
+      if (shouldUpdate('about', content.about) && content.about) setValue('content.about', content.about);
+      if (shouldUpdate('aboutSubtitle', content.aboutSubtitle) && content.aboutSubtitle) setValue('content.aboutSubtitle', content.aboutSubtitle);
+      if (shouldUpdate('personalNote', content.personalNote) && content.personalNote) setValue('content.personalNote', content.personalNote);
+      if (shouldUpdate('whatIDo', content.whatIDo) && content.whatIDo) setValue('content.whatIDo', content.whatIDo);
+      if (shouldUpdate('education', content.education) && content.education) setValue('content.education', content.education);
+      if (shouldUpdate('certifications', content.certifications) && content.certifications) setValue('content.certifications', content.certifications);
+      if (shouldUpdate('stats', content.stats) && content.stats) setValue('content.stats', content.stats);
+      if (shouldUpdate('footerDescription', content.footerDescription) && content.footerDescription) setValue('content.footerDescription', content.footerDescription);
       
       // Update skills - SMART MERGE
-      if (content.skills && Array.isArray(content.skills) && content.skills.length > 0) {
+      if (content.skills && Array.isArray(content.skills) && content.skills.length > 0 && shouldUpdate('skills', content.skills)) {
         const formattedSkills = content.skills.map((skill) => {
           const items = Array.isArray(skill.items) ? skill.items.join(', ') : skill.items;
           return { category: skill.category, items };
@@ -170,8 +302,13 @@ export default function PortfolioBuilder() {
         setValue('content.skills', formattedSkills);
       }
       
+      // Update services
+      if (content.services && Array.isArray(content.services) && content.services.length > 0 && shouldUpdate('services', content.services)) {
+        setValue('content.services', content.services);
+      }
+      
       // Update projects - SMART MERGE
-      if (content.projects && Array.isArray(content.projects) && content.projects.length > 0) {
+      if (content.projects && Array.isArray(content.projects) && content.projects.length > 0 && shouldUpdate('projects', content.projects)) {
         const existingProjects = currentData.content?.projects || [];
         
         const formattedProjects = content.projects.map((aiProject, index) => {
@@ -185,14 +322,28 @@ export default function PortfolioBuilder() {
             name: aiProject.name || existing?.name || '',
             description: aiProject.description || existing?.description || '',
             technologies: techs || existing?.technologies || '',
+            features: aiProject.features || existing?.features || '',
+            tags: aiProject.tags || existing?.tags || [],
             liveLink: existing?.liveLink || aiProject.liveLink || '',
             githubLink: existing?.githubLink || aiProject.githubLink || '',
-            image: existing?.image || '',
-            tag: existing?.tag || aiProject.tag || ''
+            image: existing?.image || ''
           };
         });
         
         setValue('content.projects', formattedProjects);
+      }
+      
+      // Update testimonials
+      if (content.testimonials && Array.isArray(content.testimonials) && content.testimonials.length > 0 && shouldUpdate('testimonials', content.testimonials)) {
+        setValue('content.testimonials', content.testimonials);
+      }
+      
+      // Update contact
+      if (content.contact && shouldUpdate('contact', content.contact)) {
+        if (content.contact.email) setValue('content.contact.email', content.contact.email);
+        if (content.contact.phone) setValue('content.contact.phone', content.contact.phone);
+        if (content.contact.linkedin) setValue('content.contact.linkedin', content.contact.linkedin);
+        if (content.contact.github) setValue('content.contact.github', content.contact.github);
       }
       
       // Track AI enhancement
@@ -245,6 +396,84 @@ export default function PortfolioBuilder() {
     // Deep clone the data
     const formatted = JSON.parse(JSON.stringify(data));
     
+    // Convert hero roles from newline-separated string to array
+    if (formatted.content?.hero?.roles && typeof formatted.content.hero.roles === 'string') {
+      formatted.content.hero.roles = formatted.content.hero.roles
+        .split('\n')
+        .map(r => r.trim())
+        .filter(Boolean);
+    }
+    
+    // Convert "What I Do" from newline-separated string to array
+    if (formatted.content?.whatIDo && typeof formatted.content.whatIDo === 'string') {
+      formatted.content.whatIDo = formatted.content.whatIDo
+        .split('\n')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+    
+    // Convert education from newline-separated "Title | Institution | Year" format to array of objects
+    if (formatted.content?.education && typeof formatted.content.education === 'string') {
+      formatted.content.education = formatted.content.education
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          return {
+            title: parts[0] || '',
+            institution: parts[1] || '',
+            year: parts[2] || ''
+          };
+        })
+        .filter(edu => edu.title || edu.institution || edu.year); // Remove completely empty entries
+    }
+    
+    // Convert certifications from newline-separated "Title | Institution | Date" format to array of objects
+    if (formatted.content?.certifications && typeof formatted.content.certifications === 'string') {
+      formatted.content.certifications = formatted.content.certifications
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          return {
+            title: parts[0] || '',
+            institution: parts[1] || '',
+            date: parts[2] || ''
+          };
+        })
+        .filter(cert => cert.title || cert.institution || cert.date); // Remove completely empty entries
+    }
+    
+    // Convert stats from newline-separated "Number | Suffix | Label" format to array of objects
+    if (formatted.content?.stats && typeof formatted.content.stats === 'string') {
+      formatted.content.stats = formatted.content.stats
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          return {
+            number: parseInt(parts[0]) || 0,
+            suffix: parts[1] || '',
+            label: parts[2] || ''
+          };
+        })
+        .filter(stat => stat.label); // Remove entries without labels
+    }
+    
+    // Convert services deliverables from newline-separated string to array
+    if (formatted.content?.services && Array.isArray(formatted.content.services)) {
+      formatted.content.services = formatted.content.services.map((service, index) => ({
+        ...service,
+        id: index + 1,
+        deliverables: typeof service.deliverables === 'string'
+          ? service.deliverables.split('\n').map(d => d.trim()).filter(Boolean)
+          : service.deliverables || []
+      })).filter(service => service.title || service.description); // Remove completely empty entries
+    }
+    
     // Convert skills items from comma-separated strings to arrays
     if (formatted.content?.skills) {
       formatted.content.skills = formatted.content.skills.map(skill => ({
@@ -255,14 +484,27 @@ export default function PortfolioBuilder() {
       }));
     }
     
-    // Convert project technologies from comma-separated strings to arrays
+    // Convert project technologies and features from strings to arrays
     if (formatted.content?.projects) {
       formatted.content.projects = formatted.content.projects.map(project => ({
         ...project,
         technologies: typeof project.technologies === 'string'
           ? project.technologies.split(',').map(t => t.trim()).filter(Boolean)
-          : project.technologies
+          : project.technologies,
+        features: typeof project.features === 'string'
+          ? project.features.split('\n').map(f => f.trim()).filter(Boolean)
+          : project.features || []
       }));
+    }
+    
+    // Format testimonials - ensure rating is a number and filter out empty entries
+    if (formatted.content?.testimonials && Array.isArray(formatted.content.testimonials)) {
+      formatted.content.testimonials = formatted.content.testimonials
+        .map(testimonial => ({
+          ...testimonial,
+          rating: parseInt(testimonial.rating) || 5
+        }))
+        .filter(testimonial => testimonial.name && testimonial.text); // Only keep testimonials with name and text
     }
     
     // Convert SEO keywords from comma-separated string to array
@@ -302,6 +544,9 @@ export default function PortfolioBuilder() {
     setLoading(true);
     try {
       const formattedData = formatPortfolioData(data);
+      
+      // Debug: Log testimonials data
+      console.log('Testimonials being saved:', formattedData.content?.testimonials);
       
       if (id) {
         await api.put(`/portfolio/${id}`, formattedData);
@@ -555,6 +800,80 @@ export default function PortfolioBuilder() {
               <p className="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2">Choose a unique subdomain for your portfolio</p>
             </section>
 
+            {/* Resume Upload */}
+            <section className="border-t pt-4 sm:pt-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Resume/CV</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Upload Your Resume (PDF)</label>
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error('Resume must be less than 5MB');
+                          return;
+                        }
+
+                        if (file.type !== 'application/pdf') {
+                          toast.error('Only PDF files are allowed');
+                          return;
+                        }
+
+                        setUploadingResume(true);
+                        const formData = new FormData();
+                        formData.append('image', file);
+
+                        try {
+                          const { data } = await api.post('/upload/image', formData);
+                          setValue('resumeUrl', data.url);
+                          toast.success('Resume uploaded!');
+                        } catch (error) {
+                          toast.error('Resume upload failed');
+                        } finally {
+                          setUploadingResume(false);
+                        }
+                      }}
+                      className="hidden"
+                      id="resume-upload"
+                    />
+                    <label
+                      htmlFor="resume-upload"
+                      className="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-100"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+                    </label>
+                    {watch('resumeUrl') && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-green-600">✓ Resume uploaded</span>
+                        <a
+                          href={watch('resumeUrl')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-indigo-600 hover:underline"
+                        >
+                          View
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setValue('resumeUrl', '')}
+                          className="text-red-600 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">Upload your resume to allow visitors to download it</p>
+                </div>
+              </div>
+            </section>
+
             {/* Template Selection */}
             <section className="border-t pt-4 sm:pt-6">
               <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Portfolio Template</h2>
@@ -694,12 +1013,23 @@ export default function PortfolioBuilder() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Your Title</label>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Tagline (Optional)</label>
                   <input
                     {...register('content.hero.subtitle')}
-                    placeholder="e.g., Full Stack Developer"
+                    placeholder="e.g., Hey, I'm (leave empty for default)"
                     className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to use "Hey, I'm" as default</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Typing Animation Roles (Professional Template)</label>
+                  <textarea
+                    {...register('content.hero.roles')}
+                    rows="3"
+                    placeholder="Full-Stack MERN Developer&#10;React & Node.js Expert&#10;Web Application Developer"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter each role on a new line. These will rotate with typing animation.</p>
                 </div>
                 <div>
                   <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Brief Introduction</label>
@@ -716,12 +1046,75 @@ export default function PortfolioBuilder() {
             {/* About */}
             <section className="border-t pt-4 sm:pt-6">
               <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3">About Me</h2>
-              <textarea
-                {...register('content.about')}
-                rows="5"
-                placeholder="Tell your story, background, and what drives you..."
-                className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
-              />
+              <div className="space-y-3 sm:space-y-4">
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">About Subtitle (Professional Template)</label>
+                  <input
+                    {...register('content.aboutSubtitle')}
+                    placeholder="e.g., Full-Stack Developer crafting modern web experiences"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Short tagline for the About section</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">About Description</label>
+                  <textarea
+                    {...register('content.about')}
+                    rows="5"
+                    placeholder="Tell your story, background, and what drives you..."
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Personal Note (Professional Template)</label>
+                  <input
+                    {...register('content.personalNote')}
+                    placeholder="e.g., Minimalist design lover • Always learning something new"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Short personal note or tagline</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">What I Do (Professional Template)</label>
+                  <textarea
+                    {...register('content.whatIDo')}
+                    rows="4"
+                    placeholder="Full-stack web app development with MERN stack&#10;REST APIs, authentication & database design&#10;Frontend UI/UX with React, Next.js & Tailwind&#10;Real-time features, payments & dashboards"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter each item on a new line</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Education (Professional Template)</label>
+                  <textarea
+                    {...register('content.education')}
+                    rows="4"
+                    placeholder="Bachelor in Information Management (BIM) | Tribhuvan University | 2021 - 2026&#10;Project-Based Learning | Hands-on experience with real-world MERN projects | 2023 - Present"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Format: Title | Institution | Year (one per line)</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Certifications (Professional Template)</label>
+                  <textarea
+                    {...register('content.certifications')}
+                    rows="4"
+                    placeholder="Hackathon by KEC I.T. | KEC I.T. Club | January 9 to January 11, 2025&#10;Front-End Development with React.js | KIST College of Management | July 22 to August 13, 2024"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Format: Title | Institution | Date (one per line)</p>
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Quick Stats (Professional Template)</label>
+                  <textarea
+                    {...register('content.stats')}
+                    rows="4"
+                    placeholder="3 | + | Years Experience&#10;12 | + | Projects Built&#10;12 |  | Live Apps&#10;20 | + | Technologies"
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Format: Number | Suffix | Label (one per line, e.g., "3 | + | Years Experience")</p>
+                </div>
+              </div>
             </section>
 
             {/* Skills */}
@@ -765,13 +1158,100 @@ export default function PortfolioBuilder() {
               </div>
             </section>
 
+            {/* Services */}
+            <section className="border-t pt-4 sm:pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold">Services (Professional Template)</h2>
+                <button
+                  type="button"
+                  onClick={() => appendService({ title: '', description: '', icon: '', badge: '', deliverables: '' })}
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline whitespace-nowrap">Add Service</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              </div>
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                {serviceFields.map((field, index) => (
+                  <div key={field.id} className="p-3 sm:p-4 lg:p-6 border rounded-lg bg-gray-50 shadow-sm">
+                    <div className="flex justify-between items-center mb-3 sm:mb-4">
+                      <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-gray-800">Service {index + 1}</h3>
+                      <button
+                        type="button"
+                        onClick={() => removeService(index)}
+                        className="text-red-600 hover:text-red-700 flex-shrink-0 p-1"
+                      >
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    </div>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Service Title</label>
+                          <input
+                            {...register(`content.services.${index}.title`)}
+                            placeholder="Full-Stack Web Development"
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Badge</label>
+                          <input
+                            {...register(`content.services.${index}.badge`)}
+                            placeholder="Full-Stack"
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Icon Name</label>
+                        <select
+                          {...register(`content.services.${index}.icon`)}
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base bg-white"
+                        >
+                          <option value="">Select an icon</option>
+                          <option value="CodeBracketIcon">Code Bracket (Development)</option>
+                          <option value="ShoppingCartIcon">Shopping Cart (E-commerce)</option>
+                          <option value="SparklesIcon">Sparkles (AI/Innovation)</option>
+                          <option value="ChartBarIcon">Chart Bar (Analytics/Dashboard)</option>
+                          <option value="DevicePhoneMobileIcon">Mobile Device (Mobile Apps)</option>
+                          <option value="GlobeAltIcon">Globe (Web/Global)</option>
+                          <option value="CpuChipIcon">CPU Chip (Tech/Performance)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Description</label>
+                        <textarea
+                          {...register(`content.services.${index}.description`)}
+                          rows="3"
+                          placeholder="End-to-end MERN stack applications with secure authentication..."
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Key Deliverables (one per line)</label>
+                        <textarea
+                          {...register(`content.services.${index}.deliverables`)}
+                          rows="4"
+                          placeholder="Complete MERN-stack solutions&#10;Real-time features (chat, notifications)&#10;Secure authentication & authorization&#10;Database design & API integration"
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Enter each deliverable on a new line</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             {/* Projects */}
             <section className="border-t pt-4 sm:pt-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg sm:text-xl font-semibold">Projects</h2>
                 <button
                   type="button"
-                  onClick={() => appendProject({ name: '', description: '', image: '', technologies: [], liveLink: '', githubLink: '', tag: '' })}
+                  onClick={() => appendProject({ name: '', description: '', image: '', technologies: [], features: '', liveLink: '', githubLink: '', tags: [] })}
                   className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
                 >
                   <Plus className="w-4 h-4" />
@@ -802,17 +1282,20 @@ export default function PortfolioBuilder() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Category/Tag</label>
-                        <select
-                          {...register(`content.projects.${index}.tag`)}
-                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base bg-white"
-                        >
-                          <option value="">Select a tag</option>
-                          <option value="ai">AI</option>
-                          <option value="fullstack">Full Stack</option>
-                          <option value="frontend">Frontend</option>
-                          <option value="web">Web</option>
-                        </select>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Tags (select multiple)</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['Recent', 'AI / ML', 'Full-Stack', 'Web', 'Real-Time / Socket', 'Frontend', 'E-commerce'].map((tagOption) => (
+                            <label key={tagOption} className="flex items-center gap-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                value={tagOption}
+                                {...register(`content.projects.${index}.tags`)}
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                              />
+                              <span className="text-sm">{tagOption}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                       <div>
                         <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Description</label>
@@ -824,12 +1307,22 @@ export default function PortfolioBuilder() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Technologies</label>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Technologies (comma-separated)</label>
                         <input
                           {...register(`content.projects.${index}.technologies`)}
                           placeholder="React, Node.js, MongoDB"
                           className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
                         />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Key Features (one per line)</label>
+                        <textarea
+                          {...register(`content.projects.${index}.features`)}
+                          rows="4"
+                          placeholder="User authentication & authorization&#10;Real-time chat functionality&#10;Payment gateway integration&#10;Admin dashboard with analytics"
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base font-mono"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Enter each feature on a new line</p>
                       </div>
                       <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
@@ -891,6 +1384,107 @@ export default function PortfolioBuilder() {
               </div>
             </section>
 
+            {/* Testimonials */}
+            <section className="border-t pt-4 sm:pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold">Testimonials</h2>
+                <button
+                  type="button"
+                  onClick={() => appendTestimonial({ name: '', role: '', company: '', image: '', text: '', rating: 5, projectType: '' })}
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 text-sm sm:text-base"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline whitespace-nowrap">Add Testimonial</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              </div>
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                {testimonialFields.map((field, index) => (
+                  <div key={field.id} className="p-3 sm:p-4 lg:p-6 border rounded-lg bg-gray-50 shadow-sm">
+                    <div className="flex justify-between items-center mb-3 sm:mb-4">
+                      <h3 className="font-semibold text-sm sm:text-base lg:text-lg text-gray-800">Testimonial {index + 1}</h3>
+                      <button
+                        type="button"
+                        onClick={() => removeTestimonial(index)}
+                        className="text-red-600 hover:text-red-700 flex-shrink-0 p-1"
+                      >
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </button>
+                    </div>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Name</label>
+                          <input
+                            {...register(`content.testimonials.${index}.name`)}
+                            placeholder="John Doe"
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Role</label>
+                          <input
+                            {...register(`content.testimonials.${index}.role`)}
+                            placeholder="Senior Developer"
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Company</label>
+                          <input
+                            {...register(`content.testimonials.${index}.company`)}
+                            placeholder="Tech Company Inc."
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Project Type</label>
+                          <input
+                            {...register(`content.testimonials.${index}.projectType`)}
+                            placeholder="E-Commerce, Dashboard, Portfolio, etc."
+                            className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Image URL</label>
+                        <input
+                          {...register(`content.testimonials.${index}.image`)}
+                          placeholder="https://ui-avatars.com/api/?name=John+Doe&background=a855f7&color=fff"
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Use ui-avatars.com for quick avatar generation</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Rating</label>
+                        <select
+                          {...register(`content.testimonials.${index}.rating`)}
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                        >
+                          <option value={5}>5 Stars</option>
+                          <option value={4}>4 Stars</option>
+                          <option value={3}>3 Stars</option>
+                          <option value={2}>2 Stars</option>
+                          <option value={1}>1 Star</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium mb-1 text-gray-700">Testimonial Text</label>
+                        <textarea
+                          {...register(`content.testimonials.${index}.text`)}
+                          rows="4"
+                          placeholder="Write what the client said about your work..."
+                          className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             {/* Contact */}
             <section className="border-t pt-4 sm:pt-6">
               <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3">Contact Information</h2>
@@ -931,78 +1525,19 @@ export default function PortfolioBuilder() {
               </div>
             </section>
 
-
-
-            {/* Resume Upload */}
+            {/* Footer */}
             <section className="border-t pt-4 sm:pt-6">
-              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Resume/CV</h2>
-              <div className="space-y-4">
+              <h2 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 sm:mb-3">Footer Settings</h2>
+              <div className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Upload Your Resume (PDF)</label>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-
-                        if (file.size > 5 * 1024 * 1024) {
-                          toast.error('Resume must be less than 5MB');
-                          return;
-                        }
-
-                        if (file.type !== 'application/pdf') {
-                          toast.error('Only PDF files are allowed');
-                          return;
-                        }
-
-                        setUploadingResume(true);
-                        const formData = new FormData();
-                        formData.append('image', file);
-
-                        try {
-                          const { data } = await api.post('/upload/image', formData);
-                          setValue('resumeUrl', data.url);
-                          toast.success('Resume uploaded!');
-                        } catch (error) {
-                          toast.error('Resume upload failed');
-                        } finally {
-                          setUploadingResume(false);
-                        }
-                      }}
-                      className="hidden"
-                      id="resume-upload"
-                    />
-                    <label
-                      htmlFor="resume-upload"
-                      className="flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-100"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {uploadingResume ? 'Uploading...' : 'Upload Resume'}
-                    </label>
-                    {watch('resumeUrl') && (
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-green-600">✓ Resume uploaded</span>
-                        <a
-                          href={watch('resumeUrl')}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-indigo-600 hover:underline"
-                        >
-                          View
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => setValue('resumeUrl', '')}
-                          className="text-red-600 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">Upload your resume to allow visitors to download it</p>
+                  <label className="block text-xs sm:text-sm font-medium mb-1.5 text-gray-700">Footer Description</label>
+                  <textarea
+                    {...register('content.footerDescription')}
+                    rows="2"
+                    placeholder="Full-Stack Developer crafting modern web applications with clean code and seamless user experiences."
+                    className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Brief description shown in the footer</p>
                 </div>
               </div>
             </section>
@@ -1083,15 +1618,15 @@ export default function PortfolioBuilder() {
 
         {/* Live Preview Panel - Desktop Only */}
         {showPreview && (
-          <div className="hidden lg:block bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-lg p-4 overflow-hidden sticky top-4" style={{ height: 'calc(100vh - 2rem)' }}>
+          <div className="hidden lg:block bg-gray-900 rounded-lg shadow-lg p-4 overflow-hidden sticky top-20" style={{ height: 'calc(100vh - 2rem)' }}>
             <div className="mb-3">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <Eye className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <Eye className="w-5 h-5 text-indigo-400" />
                 <span>Live Preview</span>
-                <span className="text-xs text-gray-500 font-normal">(Updates as you type)</span>
+                <span className="text-xs text-gray-400 font-normal">(Updates as you type)</span>
               </h3>
             </div>
-            <div className="bg-gray-900 rounded-lg shadow-2xl border border-gray-700 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100% - 3rem)' }}>
+            <div className="bg-gray-900 rounded-lg shadow-2xl border border-gray-700 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100% - 3rem)', transform: 'translateZ(0)' }}>
               <div style={{
                 zoom: '0.6',
                 width: '100%'
@@ -1107,8 +1642,8 @@ export default function PortfolioBuilder() {
       {/* Mobile Preview Modal */}
       {showPreview && (
         <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b flex-shrink-0 bg-white z-10">
               <h3 className="text-lg font-semibold">Live Preview</h3>
               <button
                 onClick={() => setShowPreview(false)}
@@ -1119,8 +1654,8 @@ export default function PortfolioBuilder() {
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto bg-gray-900">
-              <PortfolioLivePreview data={portfolioData} />
+            <div className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-900" style={{ transform: 'translateZ(0)' }}>
+              <PortfolioLivePreview key={`${portfolioData.colorTheme}-${portfolioData.template}`} data={portfolioData} />
             </div>
           </div>
         </div>

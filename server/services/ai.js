@@ -29,7 +29,7 @@ export async function callGeminiAPI(prompt, options = {}) {
     }],
     generationConfig: {
       temperature: 0.7,
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
     }
   };
 
@@ -508,161 +508,435 @@ ${fullName}`;
 export const generatePortfolioContent = async (userData, customPrompt = '') => {
   // Analyze the user's request to understand intent
   const hasSpecificRequest = customPrompt && customPrompt.trim().length > 0;
+  const fillAllRequest = customPrompt.toLowerCase().includes('fill all') || 
+                         customPrompt.toLowerCase().includes('complete') || 
+                         customPrompt.toLowerCase().includes('generate everything') ||
+                         customPrompt.toLowerCase().includes('generate all') ||
+                         customPrompt.toLowerCase().includes('fill everything') ||
+                         customPrompt.toLowerCase().includes('all data') ||
+                         customPrompt.toLowerCase().includes('all details') ||
+                         customPrompt.toLowerCase().includes('all form') ||
+                         customPrompt.toLowerCase().includes('fill') && customPrompt.toLowerCase().includes('data') ||
+                         customPrompt.toLowerCase().includes('generate') && !customPrompt.toLowerCase().includes('project') && !customPrompt.toLowerCase().includes('skill') ||
+                         customPrompt.toLowerCase().match(/^(fill|generate|create)$/i);
   
   // Extract current data for context
   const currentHero = userData?.content?.hero || {};
   const currentAbout = userData?.content?.about || '';
   const currentSkills = userData?.content?.skills || [];
   const currentProjects = userData?.content?.projects || [];
+  const currentServices = userData?.content?.services || [];
+  const currentTestimonials = userData?.content?.testimonials || [];
   
-  let prompt = `You are an expert portfolio content writer and AI assistant with the ability to understand and execute specific user requests.
+  // Analyze user intent
+  const lowerPrompt = customPrompt.toLowerCase();
+  const isEnhanceRequest = lowerPrompt.includes('enhance') || lowerPrompt.includes('improve') || lowerPrompt.includes('better');
+  const isAddRequest = lowerPrompt.includes('add') || lowerPrompt.includes('create') || lowerPrompt.includes('more');
+  const isFieldSpecific = lowerPrompt.includes('about') || lowerPrompt.includes('hero') || lowerPrompt.includes('project') || 
+                          lowerPrompt.includes('skill') || lowerPrompt.includes('service') || lowerPrompt.includes('testimonial') ||
+                          lowerPrompt.includes('education') || lowerPrompt.includes('certification') ||
+                          lowerPrompt.includes('frontend') || lowerPrompt.includes('backend') || lowerPrompt.includes('technology');
 
-CURRENT PORTFOLIO DATA:
+  // Check if portfolio has existing data
+  const hasExistingData = currentAbout || currentSkills.length > 0 || currentProjects.length > 0 || 
+                          currentServices.length > 0 || Object.keys(currentHero).length > 0;
+  
+  // Check if multiple items are requested in one prompt
+  const multipleItemsRequested = (lowerPrompt.match(/project|skill|service|testimonial|about|hero/g) || []).length > 1;
+  
+  let instructions = '';
+  let shouldPreserveExisting = false;
+  
+  if (fillAllRequest) {
+    instructions = 'Generate COMPLETE portfolio with ALL sections filled.';
+  } else if (hasSpecificRequest && multipleItemsRequested) {
+    // Handle multiple items in one request
+    shouldPreserveExisting = hasExistingData;
+    const parts = [];
+    
+    if (lowerPrompt.includes('project')) {
+      const numberMatch = lowerPrompt.match(/(\d+)\s*project/);
+      const count = numberMatch ? parseInt(numberMatch[1]) : 2;
+      parts.push(`Generate EXACTLY ${count} projects (no more, no less)`);
+      if (hasExistingData && currentProjects.length > 0) {
+        parts.push(`Current projects count: ${currentProjects.length}. Keep them and add ${count} more for total of ${currentProjects.length + count}`);
+      }
+    }
+    if (lowerPrompt.includes('skill')) {
+      const numberMatch = lowerPrompt.match(/(\d+)\s*skill/);
+      const count = numberMatch ? parseInt(numberMatch[1]) : 2;
+      parts.push(`Generate EXACTLY ${count} skill categories`);
+    }
+    if (lowerPrompt.includes('service')) {
+      const numberMatch = lowerPrompt.match(/(\d+)\s*service/);
+      const count = numberMatch ? parseInt(numberMatch[1]) : 2;
+      parts.push(`Generate EXACTLY ${count} services`);
+    }
+    if (lowerPrompt.includes('testimonial')) {
+      const numberMatch = lowerPrompt.match(/(\d+)\s*testimonial/);
+      const count = numberMatch ? parseInt(numberMatch[1]) : 2;
+      parts.push(`Generate EXACTLY ${count} testimonials (no more, no less)`);
+      if (hasExistingData && currentTestimonials.length > 0) {
+        parts.push(`Current testimonials count: ${currentTestimonials.length}. Keep them and add ${count} more for total of ${currentTestimonials.length + count}`);
+      }
+    }
+    
+    instructions = parts.join('. ') + `. CRITICAL: Follow the EXACT numbers specified. Do not generate more or less than requested.`;
+  } else if (hasSpecificRequest) {
+    // Only preserve existing data if there IS existing data
+    shouldPreserveExisting = hasExistingData;
+    
+    if (lowerPrompt.includes('about') && !lowerPrompt.includes('project') && !lowerPrompt.includes('skill')) {
+      if (hasExistingData) {
+        instructions = `ONLY generate/update the about section. Leave ALL other fields (hero, skills, projects, services, testimonials) EMPTY or unchanged.`;
+      } else {
+        instructions = `Generate ONLY the about section. Return empty strings for hero fields, empty arrays for skills/projects/services/testimonials.`;
+      }
+    } else if (lowerPrompt.includes('hero') && !lowerPrompt.includes('about')) {
+      if (hasExistingData) {
+        instructions = `ONLY generate/update hero section. Leave ALL other fields unchanged.`;
+      } else {
+        instructions = `Generate ONLY hero section. Return empty string for about, empty arrays for skills/projects/services/testimonials.`;
+      }
+    } else if (isAddRequest && (lowerPrompt.includes('skill') || lowerPrompt.includes('frontend') || lowerPrompt.includes('backend') || lowerPrompt.includes('technology'))) {
+      // Extract number from prompt
+      const numberMatch = lowerPrompt.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)/);
+      const numberMap = {one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10};
+      const requestedCount = numberMatch ? (numberMap[numberMatch[1]] || parseInt(numberMatch[1])) : 2;
+      instructions = `ADD exactly ${requestedCount} new skill categories. ${hasExistingData ? `Current skills: ${JSON.stringify(currentSkills)}. Keep ALL existing skill categories and ADD exactly ${requestedCount} new ones. Total should be ${currentSkills.length + requestedCount} skill categories.` : `Generate exactly ${requestedCount} skill categories.`}`;
+    } else if (isAddRequest && lowerPrompt.includes('project')) {
+      // Extract number from prompt
+      const numberMatch = lowerPrompt.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)/);
+      const numberMap = {one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10};
+      const requestedCount = numberMatch ? (numberMap[numberMatch[1]] || parseInt(numberMatch[1])) : 2;
+      instructions = `ADD exactly ${requestedCount} new projects. ${hasExistingData ? `Current projects: ${JSON.stringify(currentProjects)}. Keep ALL existing projects and ADD exactly ${requestedCount} new ones. Total should be ${currentProjects.length + requestedCount} projects.` : `Generate exactly ${requestedCount} new projects.`}`;
+    } else if (isAddRequest && lowerPrompt.includes('service')) {
+      // Extract number from prompt
+      const numberMatch = lowerPrompt.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)/);
+      const numberMap = {one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10};
+      const requestedCount = numberMatch ? (numberMap[numberMatch[1]] || parseInt(numberMatch[1])) : 2;
+      instructions = `ADD exactly ${requestedCount} new services. ${hasExistingData ? `Current services: ${JSON.stringify(currentServices)}. Keep ALL existing services and ADD exactly ${requestedCount} new ones. Total should be ${currentServices.length + requestedCount} services.` : `Generate exactly ${requestedCount} new services.`}`;
+    } else if (isAddRequest && lowerPrompt.includes('testimonial')) {
+      // Extract number from prompt
+      const numberMatch = lowerPrompt.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten)/);
+      const numberMap = {one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10};
+      const requestedCount = numberMatch ? (numberMap[numberMatch[1]] || parseInt(numberMatch[1])) : 2;
+      instructions = `ADD exactly ${requestedCount} new testimonials. ${hasExistingData ? `Current testimonials: ${JSON.stringify(currentTestimonials)}. Keep ALL existing testimonials and ADD exactly ${requestedCount} new ones. Total should be ${currentTestimonials.length + requestedCount} testimonials.` : `Generate exactly ${requestedCount} new testimonials.`}`;
+    } else {
+      instructions = `User request: "${customPrompt}". ${hasExistingData ? 'Modify ONLY what is requested. Keep everything else unchanged.' : 'Generate only what is requested.'}`;
+    }
+  } else {
+    instructions = 'Enhance existing content while keeping the structure.';
+  }
+
+  let prompt = `You are a portfolio content editor. ${instructions}
+
+${shouldPreserveExisting ? `
+CRITICAL: You MUST return ALL existing data EXACTLY as is, except for the specific field mentioned.
+
+EXISTING DATA (COPY THESE EXACTLY - DO NOT MODIFY):
 Hero: ${JSON.stringify(currentHero)}
-About: ${currentAbout}
+About: "${currentAbout}"
 Skills: ${JSON.stringify(currentSkills)}
 Projects: ${JSON.stringify(currentProjects)}
+Services: ${JSON.stringify(currentServices)}
+Testimonials: ${JSON.stringify(currentTestimonials)}
 
-${hasSpecificRequest ? `
-USER'S REQUEST: "${customPrompt}"
-
-CRITICAL TASK ANALYSIS:
-1. READ the user's request carefully
-2. UNDERSTAND what they want:
-   - ADD = append new items to existing content
-   - CREATE = generate new items
-   - IMPROVE/ENHANCE = modify existing content
-   - REMOVE = delete specific items
-3. EXECUTE the request precisely
-4. PRESERVE all existing content unless specifically asked to change it
-
-EXAMPLES:
-Request: "Add React and TypeScript to my skills"
-→ Keep ALL existing skills, ADD React and TypeScript to appropriate category
-
-Request: "Create a project about e-commerce"  
-→ Keep ALL existing projects, ADD 1 new e-commerce project
-
-Request: "Add 3 more web development projects"
-→ Keep ALL existing projects, ADD 3 new web development projects
-
-Request: "Make my about section more professional"
-→ Keep hero and all other sections, ONLY rewrite about section
-
-Request: "Improve project descriptions"
-→ Keep all projects, ONLY enhance their descriptions
+ONLY modify the field mentioned in the request. Copy all other fields EXACTLY as shown above.
 ` : `
-TASK: Generate professional portfolio content. If sections are empty, create compelling content. If sections have content, enhance it.
+If generating only specific fields, leave other fields as empty strings or empty arrays.
+For example, if only generating "about", return:
+- about: "generated content"
+- hero: {"title": "", "subtitle": "", "description": "", "roles": ""}
+- skills: []
+- projects: []
+- services: []
+- testimonials: []
 `}
 
-CRITICAL OUTPUT REQUIREMENTS:
-1. Return ONLY valid JSON (no markdown, no code blocks, no backticks)
-2. Start directly with { and end with }
-3. Use this EXACT structure:
+CRITICAL RULES:
+- Keep ALL text SHORT (under 120 chars per field)
+- NO quotes or apostrophes in strings - use simple words
+- Use \\n for line breaks
+- Return ONLY valid JSON - no markdown, no explanations
+- Keep testimonials array to MAX 3 items
+- Keep projects array to MAX 4 items
+- Keep services array to MAX 3 items
+- Keep skills array to MAX 4 categories
+
+Return complete JSON with this EXACT structure:
 
 {
   "hero": {
-    "title": "${currentHero.title || 'Your Name'}",
-    "subtitle": "${currentHero.subtitle || 'Professional Title'}",
-    "description": "${currentHero.description || 'Brief introduction'}"
+    "title": "Full name",
+    "subtitle": "Professional title under 100 chars",
+    "description": "Short pitch under 150 chars",
+    "roles": "3-4 roles with \\n separator"
   },
-  "about": "2-3 paragraph about section",
+  "about": "Professional background in 2-3 short paragraphs. Max 500 chars total.",
+  "aboutSubtitle": "Short tagline under 50 chars",
+  "personalNote": "Philosophy in 1 sentence under 100 chars",
+  "whatIDo": "3-4 activities with \\n separator. Each under 80 chars",
+  "education": "2 entries: Degree | University | Year with \\n separator",
+  "certifications": "2 entries: Cert | Provider | Date with \\n separator",
+  "stats": "3 stats: Number | + | Label with \\n separator",
   "skills": [
-    {
-      "category": "Category Name",
-      "items": ["skill1", "skill2", "skill3"]
-    }
+    {"category": "Frontend", "items": ["React", "Vue", "Angular", "TypeScript", "Next.js"]},
+    {"category": "Backend", "items": ["Node.js", "Python", "Express", "Django", "GraphQL"]},
+    {"category": "Database", "items": ["MongoDB", "PostgreSQL", "Redis", "MySQL"]},
+    {"category": "DevOps", "items": ["Docker", "AWS", "CI/CD", "Kubernetes"]}
+  ],
+  "services": [
+    {"title": "Service name", "description": "Short desc under 120 chars", "icon": "CodeBracketIcon", "badge": "Popular", "deliverables": "Item1\\nItem2\\nItem3"}
   ],
   "projects": [
-    {
-      "name": "Project Name",
-      "description": "2-3 sentence description focusing on impact and features",
-      "technologies": ["tech1", "tech2"],
-      "liveLink": "",
-      "githubLink": ""
-    }
-  ]
+    {"name": "Project name", "description": "Short desc under 120 chars", "technologies": ["React", "Node", "MongoDB"], "features": "Feature1\\nFeature2\\nFeature3", "tags": ["Recent", "Full-Stack"], "liveLink": "", "githubLink": ""}
+  ],
+  "testimonials": [
+    {"name": "Name", "role": "Role", "company": "Company", "text": "Short testimonial under 120 chars", "rating": 5, "projectType": "E-Commerce", "image": "https://ui-avatars.com/api/?name=John+Doe&background=a855f7&color=fff"}
+  ],
+  "footerDescription": "Footer text under 100 chars",
+  "contact": {
+    "email": "email@example.com",
+    "phone": "+1234567890",
+    "linkedin": "https://linkedin.com/in/username",
+    "github": "https://github.com/username"
+  }
 }
 
-EXECUTION RULES:
-${hasSpecificRequest ? `
-- If request mentions "add" or "create": KEEP all existing items + ADD new ones
-- If request mentions "improve" or "enhance": MODIFY only the mentioned section
-- If request mentions specific skills/projects: ADD them to existing list
-- If request mentions a number (e.g., "3 more projects"): ADD exactly that many
-- ALWAYS preserve existing content unless explicitly asked to change it
-` : `
-- If sections are empty, generate professional content
-- If sections have content, enhance and improve it
-- Keep it concise and impactful
-`}
-
-CONTENT GUIDELINES:
-- About: 2-3 paragraphs max, professional yet personable
-- Skills: Organize by category (Frontend, Backend, Tools, etc.)
-- Projects: 2-3 sentences each, focus on impact and technologies
-- Be specific and achievement-focused
-- Use professional language`;
+Rules:
+- Use \\n for line breaks in strings
+- Keep descriptions under 200 characters
+- All strings must be properly escaped
+- Return valid JSON only`;
 
   try {
+    console.log('=== CALLING GEMINI API ===');
     const result = await callGeminiAPI(prompt);
+    console.log('=== GEMINI API RESPONSE RECEIVED ===');
     
     // Clean up the response - remove markdown code blocks if present
     let cleanedResult = result.trim();
+    console.log('Cleaned result length:', cleanedResult.length);
     if (cleanedResult.startsWith('```json')) {
       cleanedResult = cleanedResult.replace(/```json\n?/g, '').replace(/```\n?/g, '');
     } else if (cleanedResult.startsWith('```')) {
       cleanedResult = cleanedResult.replace(/```\n?/g, '');
     }
     
-    // Parse to validate JSON
-    const parsed = JSON.parse(cleanedResult);
+    // Try to parse JSON, if it fails, log the error and retry with simpler prompt
+    let parsed;
+    try {
+      parsed = JSON.parse(cleanedResult);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError.message);
+      console.log('Raw response preview:', cleanedResult.substring(0, 500));
+      console.log('Attempting to fix JSON...');
+      
+      // Try to fix common JSON issues
+      try {
+        // Remove any trailing commas
+        cleanedResult = cleanedResult.replace(/,(\s*[}\]])/g, '$1');
+        
+        // Try to fix unterminated strings by finding the last complete object
+        const errorMatch = parseError.message.match(/position (\d+)/);
+        if (errorMatch && parseError.message.includes('Unterminated string')) {
+          const pos = parseInt(errorMatch[1]);
+          console.log('Unterminated string at position:', pos);
+          
+          // Find the last complete closing brace before the error
+          let lastValidPos = pos;
+          let braceCount = 0;
+          for (let i = pos - 1; i >= 0; i--) {
+            if (cleanedResult[i] === '}') {
+              braceCount++;
+              if (braceCount === 1) {
+                lastValidPos = i + 1;
+                break;
+              }
+            } else if (cleanedResult[i] === '{') {
+              braceCount--;
+            }
+          }
+          
+          // Truncate to last valid position and close the JSON
+          cleanedResult = cleanedResult.substring(0, lastValidPos);
+          console.log('Truncated to last valid position. New length:', cleanedResult.length);
+        }
+        
+        // Try parsing again
+        parsed = JSON.parse(cleanedResult);
+        console.log('✅ JSON repaired successfully!');
+      } catch (secondError) {
+        console.error('Still failed after cleanup.');
+        console.error('Error:', secondError.message);
+        // Log the problematic part
+        const errorMatch2 = secondError.message.match(/position (\d+)/);
+        if (errorMatch2) {
+          const pos = parseInt(errorMatch2[1]);
+          console.log('Error near:', cleanedResult.substring(Math.max(0, pos - 100), pos + 100));
+        }
+        throw new Error('AI generated invalid JSON. The response contains syntax errors. Please try again.');
+      }
+    }
+    
+    // Normalize field names (AI sometimes capitalizes them)
+    const normalizedParsed = {};
+    for (const key in parsed) {
+      const lowerKey = key.toLowerCase();
+      normalizedParsed[lowerKey] = parsed[key];
+    }
+    parsed = normalizedParsed;
+    
+    // Log what AI generated
+    console.log('AI Raw Response Fields:', Object.keys(parsed));
+    if (parsed.hero) console.log('Hero Fields:', Object.keys(parsed.hero));
+    console.log('Fill All Request:', fillAllRequest);
+    console.log('Custom Prompt:', customPrompt);
+    
+    // ALWAYS validate and ensure all required fields are present (not just for fillAllRequest)
+    // This ensures comprehensive data regardless of how AI responds
+    console.log('Validating and filling missing fields...');
+    console.log('Before validation - aboutSubtitle:', parsed.aboutSubtitle);
+    console.log('Before validation - personalNote:', parsed.personalNote);
+    console.log('Before validation - whatIDo:', parsed.whatIDo);
+    
+    // Ensure all required fields exist - be aggressive about filling missing fields
+    if (!parsed.hero) parsed.hero = {};
+    if (!parsed.hero.roles || parsed.hero.roles.trim() === '') {
+      parsed.hero.roles = "Full Stack Developer\\nUI/UX Designer\\nTech Consultant\\nOpen Source Contributor";
+    }
+    if (!parsed.aboutSubtitle || parsed.aboutSubtitle.trim() === '') {
+      parsed.aboutSubtitle = "Crafting Digital Experiences That Matter";
+    }
+    if (!parsed.personalNote || parsed.personalNote.trim() === '') {
+      parsed.personalNote = "I believe in creating elegant solutions that make a real difference in people's lives.";
+    }
+    if (!parsed.whatIDo || parsed.whatIDo.trim() === '') {
+      parsed.whatIDo = "Design and develop modern web applications\\nBuild scalable backend systems with Node.js\\nCreate intuitive user interfaces\\nOptimize performance and user experience\\nMentor junior developers";
+    }
+    if (!parsed.education || parsed.education.trim() === '') {
+      parsed.education = "Bachelor of Computer Science | Stanford University | 2020\\nMaster of Software Engineering | MIT | 2022";
+    }
+    if (!parsed.certifications || parsed.certifications.trim() === '') {
+      parsed.certifications = "AWS Certified Solutions Architect | Amazon Web Services | 2023\\nGoogle Cloud Professional Developer | Google | 2023\\nCertified Kubernetes Administrator | CNCF | 2023";
+    }
+    if (!parsed.stats || parsed.stats.trim() === '') {
+      parsed.stats = "50 | + | Projects Completed\\n5 | + | Years Experience\\n100 | % | Client Satisfaction\\n20 | + | Happy Clients";
+    }
+    if (!parsed.footerDescription || parsed.footerDescription.trim() === '') {
+      parsed.footerDescription = "Full Stack Developer crafting modern web applications with clean code and seamless user experiences.";
+    }
+    
+    // Ensure services array has items with all fields
+    if (!parsed.services || parsed.services.length === 0) {
+        parsed.services = [
+          {
+            title: "Web Application Development",
+            description: "Build modern, responsive web applications using cutting-edge technologies.",
+            icon: "CodeBracketIcon",
+            badge: "Popular",
+            deliverables: "Custom web application development\\nResponsive UI/UX design\\nAPI integration\\nDatabase optimization\\nDeployment and maintenance"
+          },
+          {
+            title: "Mobile App Development",
+            description: "Create cross-platform mobile applications for iOS and Android.",
+            icon: "DevicePhoneMobileIcon",
+            badge: "New",
+            deliverables: "iOS and Android development\\nCross-platform solutions\\nApp store deployment\\nPush notifications\\nOffline functionality"
+          },
+          {
+            title: "E-Commerce Solutions",
+            description: "Develop complete e-commerce platforms with payment integration.",
+            icon: "ShoppingCartIcon",
+            badge: "Premium",
+            deliverables: "Custom e-commerce platform\\nPayment gateway integration\\nInventory management\\nAdmin dashboard\\nSEO optimization"
+          }
+        ];
+    } else {
+      // Ensure each service has all required fields
+      parsed.services = parsed.services.map(service => ({
+        ...service,
+        icon: service.icon || "CodeBracketIcon",
+        badge: service.badge || "",
+        deliverables: service.deliverables || "Service deliverable 1\\nService deliverable 2\\nService deliverable 3"
+      }));
+    }
+    
+    // Ensure projects have features and tags
+    if (parsed.projects && Array.isArray(parsed.projects)) {
+      parsed.projects = parsed.projects.map((project, index) => ({
+        ...project,
+        features: project.features || `Advanced feature ${index + 1}\\nReal-time updates\\nResponsive design\\nSecure authentication\\nPerformance optimized`,
+        tags: project.tags && project.tags.length > 0 ? project.tags : ["Recent", "Full-Stack"]
+      }));
+    } else {
+      // If no projects at all, create default ones
+      parsed.projects = [{
+        name: "E-Commerce Platform",
+        description: "Full-featured online shopping platform with payment integration and inventory management.",
+        technologies: ["React", "Node.js", "MongoDB", "Stripe"],
+        features: "Real-time inventory tracking\\nSecure payment processing\\nAdmin dashboard\\nOrder management",
+        tags: ["Recent", "E-commerce", "Full-Stack"],
+        liveLink: "",
+        githubLink: ""
+      }];
+    }
+    
+    // Ensure testimonials exist with all fields
+    if (!parsed.testimonials || parsed.testimonials.length === 0) {
+        parsed.testimonials = [
+          {
+            name: "Sarah Johnson",
+            role: "CEO",
+            company: "TechStart Inc.",
+            text: "Outstanding work! Delivered our project ahead of schedule with exceptional quality. Highly professional and responsive throughout the entire process.",
+            rating: 5,
+            projectType: "E-Commerce",
+            image: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=a855f7&color=fff"
+          },
+          {
+            name: "Michael Chen",
+            role: "Product Manager",
+            company: "InnovateLabs",
+            text: "Excellent technical skills and great communication. The final product exceeded our expectations and our users love it!",
+            rating: 5,
+            projectType: "Dashboard",
+            image: "https://ui-avatars.com/api/?name=Michael+Chen&background=ec4899&color=fff"
+          },
+          {
+            name: "Emily Rodriguez",
+            role: "Founder",
+            company: "Creative Studio",
+            text: "Built our portfolio website with stunning design and smooth animations. Very professional and easy to work with.",
+            rating: 5,
+            projectType: "Portfolio",
+            image: "https://ui-avatars.com/api/?name=Emily+Rodriguez&background=10b981&color=fff"
+          }
+        ];
+    } else {
+      // Ensure each testimonial has all required fields
+      parsed.testimonials = parsed.testimonials.map(testimonial => ({
+        ...testimonial,
+        rating: testimonial.rating || 5,
+        projectType: testimonial.projectType || "Web Development",
+        image: testimonial.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name || 'User')}&background=a855f7&color=fff`
+      }));
+    }
+    
+    console.log('After validation - aboutSubtitle:', parsed.aboutSubtitle);
+    console.log('After validation - services count:', parsed.services?.length);
+    console.log('After validation - testimonials count:', parsed.testimonials?.length);
+    console.log('Validation complete. All required fields present.');
     
     return parsed;
   } catch (error) {
-    console.error('Portfolio generation error:', error.message);
+    console.error('=== PORTFOLIO GENERATION ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     
-    if (process.env.NODE_ENV !== 'production') {
-      return {
-        hero: {
-          title: userData?.content?.hero?.title || 'Your Name',
-          subtitle: 'Full Stack Developer',
-          description: 'Passionate developer with expertise in building modern web applications using cutting-edge technologies.'
-        },
-        about: 'Dedicated software developer specializing in full-stack web development. Experienced in building scalable applications with modern technologies and best practices. Strong foundation in both frontend and backend development.\n\nPassionate about creating elegant solutions to complex problems. Committed to writing clean, maintainable code and staying current with industry trends.',
-        skills: [
-          {
-            category: 'Frontend Development',
-            items: ['React', 'Vue.js', 'TypeScript', 'Tailwind CSS', 'Next.js']
-          },
-          {
-            category: 'Backend Development',
-            items: ['Node.js', 'Express', 'MongoDB', 'PostgreSQL', 'REST APIs']
-          },
-          {
-            category: 'Tools & DevOps',
-            items: ['Git', 'Docker', 'AWS', 'CI/CD', 'Jest']
-          }
-        ],
-        projects: [
-          {
-            name: 'E-Commerce Platform',
-            description: 'Full-featured online shopping platform with authentication, product management, and payment integration. Includes real-time inventory tracking.',
-            technologies: ['React', 'Node.js', 'MongoDB', 'Stripe', 'Redux'],
-            liveLink: '',
-            githubLink: ''
-          },
-          {
-            name: 'Task Management App',
-            description: 'Collaborative task management tool with real-time updates and drag-and-drop interface. Supports team collaboration and customizable workflows.',
-            technologies: ['Vue.js', 'Firebase', 'Vuex', 'Tailwind CSS'],
-            liveLink: '',
-            githubLink: ''
-          }
-        ]
-      };
-    }
-    throw error;
+    // Don't use fallback - throw the error so user knows AI generation failed
+    throw new Error('AI generation failed. Please try again or check your API configuration.');
   }
 };
 
