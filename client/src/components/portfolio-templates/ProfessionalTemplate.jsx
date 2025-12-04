@@ -75,8 +75,9 @@ const StatCard = ({ number, suffix, label, delay }) => {
 };
 
 // About Section Component
-const AboutSection = ({ content, getSkillIcon }) => {
+const AboutSection = ({ content, getSkillIcon, portfolio }) => {
   const [activeTab, setActiveTab] = useState("skills");
+  const themeColors = getThemeColors(portfolio.colorTheme);
 
   if (!content.about) return null;
 
@@ -139,8 +140,8 @@ const AboutSection = ({ content, getSkillIcon }) => {
             return { degree: parts[0], institution: parts[1], year: parts[2] };
           }) : content.education).map((edu, index) => (
             <div key={index}>
-              <div className={`absolute left-0 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white -ml-[7px] sm:-ml-[9px]`} 
-                   style={{ top: index === 0 ? '18%' : `${18 + (index * 50)}%` }} />
+              <div className={`absolute left-0 w-3 h-3 sm:w-4 sm:h-4 rounded-full -ml-[7px] sm:-ml-[9px]`} 
+                   style={{ top: index === 0 ? '18%' : `${18 + (index * 50)}%`, backgroundColor: themeColors.primary }} />
               {edu.title && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{edu.title}</p>}
               {(edu.institution || edu.year) && (
                 <p className="text-[#ADB7BE] text-xs md:text-sm lg:text-base font-normal mt-1">
@@ -166,8 +167,8 @@ const AboutSection = ({ content, getSkillIcon }) => {
             return { name: parts[0], provider: parts[1], date: parts[2] };
           }) : content.certifications).map((cert, index) => (
             <div key={index}>
-              <div className={`absolute left-0 w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white -ml-[7px] sm:-ml-[9px]`}
-                   style={{ top: index === 0 ? '18%' : `${18 + (index * 50)}%` }} />
+              <div className={`absolute left-0 w-3 h-3 sm:w-4 sm:h-4 rounded-full -ml-[7px] sm:-ml-[9px]`}
+                   style={{ top: index === 0 ? '18%' : `${18 + (index * 50)}%`, backgroundColor: themeColors.primary }} />
               {cert.title && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{cert.title}</p>}
               {(cert.institution || cert.date) && (
                 <p className="text-[#ADB7BE] text-xs md:text-sm lg:text-base font-normal mt-1">
@@ -956,7 +957,7 @@ export default function ProfessionalTemplate({
       </section>
 
       {/* About Section */}
-      <AboutSection content={content} getSkillIcon={getSkillIcon} />
+      <AboutSection content={content} getSkillIcon={getSkillIcon} portfolio={portfolio} />
 
       {/* Services Section */}
       {content.services && content.services.length > 0 && (

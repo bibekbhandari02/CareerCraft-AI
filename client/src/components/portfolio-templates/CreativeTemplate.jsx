@@ -171,7 +171,7 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
                 transition={{ delay: index * 0.1 + 0.2, type: "spring" }}
-                className="absolute -left-[40px] sm:-left-[50px] top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full shadow-lg border-3 border-white"
+                className="absolute -left-[40px] sm:-left-[50px] top-[40%] -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full shadow-lg border-3 border-white"
                 style={{
                   background: `linear-gradient(to bottom right, ${getThemeColors(portfolio.colorTheme).primary}, ${getThemeColors(portfolio.colorTheme).secondary})`
                 }}
@@ -232,7 +232,7 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
                 transition={{ delay: index * 0.1 + 0.2, type: "spring" }}
-                className="absolute -left-[40px] sm:-left-[50px] top-1/2 -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full shadow-lg border-3 border-white"
+                className="absolute -left-[40px] sm:-left-[50px] top-[40%] -translate-y-1/2 w-5 h-5 sm:w-6 sm:h-6 rounded-full shadow-lg border-3 border-white"
                 style={{
                   background: `linear-gradient(to bottom right, ${getThemeColors(portfolio.colorTheme).secondary}, ${getThemeColors(portfolio.colorTheme).primary})`
                 }}
