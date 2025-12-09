@@ -21,12 +21,9 @@ export const handleApiError = (error, customMessage = null) => {
   // Handle specific status codes
   switch (error.response?.status) {
     case 400:
-      toast.error(message);
-      break;
     case 401:
-      toast.error('Please log in to continue.');
-      // Optionally redirect to login
-      // window.location.href = '/login';
+      // Show the actual error message from server (e.g., "Invalid email or password")
+      toast.error(message);
       break;
     case 403:
       toast.error('You don\'t have permission to do that.');

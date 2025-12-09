@@ -17,9 +17,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect to login if it's an authenticated endpoint (not login/register)
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                             error.config?.url?.includes('/auth/register');
+      
+      // Only logout and redirect if it's NOT a login/register attempt
+      if (!isAuthEndpoint) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
     }
     
     // Log errors for debugging

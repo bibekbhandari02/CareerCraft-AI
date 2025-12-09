@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FileText, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { FileText, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { handleApiError } from '../utils/errorHandler';
@@ -13,7 +13,13 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    mode: 'onBlur', // Validate on blur for better UX
+    defaultValues: {
+      email: '',
+      password: ''
+    }
+  });
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -102,6 +108,7 @@ export default function Login() {
                   </div>
                   <input
                     type="email"
+                    autoComplete="email"
                     {...register('email', { 
                       required: 'Email is required',
                       pattern: {
@@ -109,13 +116,14 @@ export default function Login() {
                         message: 'Invalid email address'
                       }
                     })}
-                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="you@example.com"
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.email.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.email.message}</span>
                   </p>
                 )}
               </div>
@@ -129,6 +137,7 @@ export default function Login() {
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     {...register('password', { 
                       required: 'Password is required',
                       minLength: {
@@ -136,20 +145,22 @@ export default function Login() {
                         message: 'Password must be at least 6 characters'
                       }
                     })}
-                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    tabIndex={-1}
                   >
-                    <span className="text-sm">{showPassword ? 'Hide' : 'Show'}</span>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.password.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.password.message}</span>
                   </p>
                 )}
               </div>
@@ -157,10 +168,10 @@ export default function Login() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isSubmitting}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {loading || isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Signing in...</span>

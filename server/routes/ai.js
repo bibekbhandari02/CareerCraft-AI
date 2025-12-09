@@ -12,20 +12,139 @@ const aiRateLimiter = rateLimit({
   message: 'Too many AI requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  // Use user ID for authenticated requests
-  keyGenerator: (req) => req.user?._id?.toString() || req.ip
+  // Use user ID for authenticated requests, skip keyGenerator to use default
+  skip: (req) => false, // Don't skip any requests
+  ...(process.env.NODE_ENV !== 'production' && { skipFailedRequests: true })
 });
 
 // Enhance resume with AI
 router.post('/enhance-resume', authenticate, aiRateLimiter, async (req, res) => {
   try {
     const { resumeData } = req.body;
-    const enhanced = await enhanceResume(resumeData);
-    res.json({ enhanced });
+    const parsed = await enhanceResume(resumeData);
+    
+    // The new enhanceResume returns structured JSON directly
+    // No need for text parsing anymore
+    
+    res.json({ parsed });
   } catch (error) {
+    console.error('Resume enhancement error:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
+// Helper function to parse enhanced resume text into structured data
+function parseEnhancedResume(enhancedText, originalData) {
+  const parsed = {
+    skills: [],
+    projects: [],
+    education: [],
+    certifications: []
+  };
+  
+  // Extract Skills section
+  const skillsMatch = enhancedText.match(/\*\*Skills\*\*([\s\S]*?)(?=\*\*|$)/);
+  if (skillsMatch) {
+    const skillsText = skillsMatch[1];
+    const lines = skillsText.split('\n').filter(line => line.trim() && line.includes(':'));
+    
+    lines.forEach(line => {
+      const [category, items] = line.split(':').map(s => s.trim());
+      if (category && items) {
+        parsed.skills.push({
+          category: category,
+          items: items.split(',').map(item => item.trim()).filter(item => item)
+        });
+      }
+    });
+  }
+  
+  // If no skills parsed, use original
+  if (parsed.skills.length === 0 && originalData.skills) {
+    parsed.skills = originalData.skills;
+  }
+  
+  // Extract Projects section
+  const projectsMatch = enhancedText.match(/\*\*Projects\*\*([\s\S]*?)(?=\*\*Education|$)/);
+  if (projectsMatch) {
+    const projectsText = projectsMatch[1];
+    const projectBlocks = projectsText.split(/\*\*([^*]+)\*\*/).filter(s => s.trim());
+    
+    for (let i = 0; i < projectBlocks.length; i += 2) {
+      if (projectBlocks[i] && projectBlocks[i + 1]) {
+        const name = projectBlocks[i].trim();
+        const content = projectBlocks[i + 1].trim();
+        
+        const descMatch = content.match(/^([^\n]+)/);
+        const techMatch = content.match(/Technologies?:\s*([^\n]+)/i);
+        const githubMatch = content.match(/GitHub:\s*([^\n]+)/i);
+        const liveMatch = content.match(/Live:\s*([^\n]+)/i);
+        
+        parsed.projects.push({
+          name: name,
+          description: descMatch ? descMatch[1].trim() : '',
+          technologies: techMatch ? techMatch[1].trim() : '',
+          github: githubMatch ? githubMatch[1].trim() : '',
+          link: liveMatch ? liveMatch[1].trim() : ''
+        });
+      }
+    }
+  }
+  
+  // If no projects parsed, use original
+  if (parsed.projects.length === 0 && originalData.projects) {
+    parsed.projects = originalData.projects;
+  }
+  
+  // Extract Education
+  const educationMatch = enhancedText.match(/\*\*Education\*\*([\s\S]*?)(?=\*\*|$)/);
+  if (educationMatch) {
+    const educationText = educationMatch[1];
+    const lines = educationText.split('\n').filter(line => line.trim() && line.includes('|'));
+    
+    lines.forEach(line => {
+      const parts = line.split('|').map(s => s.trim());
+      if (parts.length >= 3) {
+        parsed.education.push({
+          degree: parts[0],
+          institution: parts[1],
+          graduationDate: parts[2]
+        });
+      }
+    });
+  }
+  
+  // If no education parsed, use original
+  if (parsed.education.length === 0 && originalData.education) {
+    parsed.education = originalData.education;
+  }
+  
+  // Extract Certifications
+  const certificationsMatch = enhancedText.match(/\*\*Certifications\*\*([\s\S]*?)(?=\*\*|$)/);
+  if (certificationsMatch) {
+    const certificationsText = certificationsMatch[1];
+    const lines = certificationsText.split('\n').filter(line => line.trim() && line.includes('|'));
+    
+    lines.forEach(line => {
+      const cleanLine = line.replace(/^-\s*/, '').trim();
+      const parts = cleanLine.split('|').map(s => s.trim());
+      if (parts.length >= 2) {
+        parsed.certifications.push({
+          name: parts[0],
+          issuer: parts[1],
+          date: parts[2] || ''
+        });
+      }
+    });
+  }
+  
+  // If no certifications parsed, use original
+  if (parsed.certifications.length === 0 && originalData.certifications) {
+    parsed.certifications = originalData.certifications;
+  }
+  
+  return parsed;
+}
 
 // Generate cover letter with streaming support
 router.post('/cover-letter', authenticate, aiRateLimiter, async (req, res) => {

@@ -171,9 +171,9 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 className="bg-white rounded-2xl p-4 sm:p-5 shadow-md hover:shadow-xl transition-all duration-300 border-2 flex-1"
                 style={{ borderColor: `${getThemeColors(portfolio.colorTheme).primary}33` }}
               >
-                {edu.title && (
+                {(edu.title || edu.degree) && (
                   <p className="text-gray-900 font-bold text-base md:text-lg lg:text-xl mb-2">
-                    🎓 {edu.title}
+                    🎓 {edu.title || edu.degree}
                   </p>
                 )}
                 {(edu.institution || edu.year) && (
@@ -221,14 +221,14 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 className="bg-white rounded-2xl p-4 sm:p-5 shadow-md hover:shadow-xl transition-all duration-300 border-2 flex-1"
                 style={{ borderColor: `${getThemeColors(portfolio.colorTheme).secondary}33` }}
               >
-                {cert.title && (
+                {(cert.title || cert.name) && (
                   <p className="text-gray-900 font-bold text-base md:text-lg lg:text-xl mb-2">
-                    🏆 {cert.title}
+                    🏆 {cert.title || cert.name}
                   </p>
                 )}
-                {(cert.institution || cert.date) && (
+                {((cert.institution || cert.provider) || cert.date) && (
                   <p className="text-gray-600 text-sm md:text-base font-medium">
-                    {cert.institution}{cert.institution && cert.date && ' • '}{cert.date}
+                    {cert.institution || cert.provider}{(cert.institution || cert.provider) && cert.date && ' • '}{cert.date}
                   </p>
                 )}
               </div>
@@ -700,7 +700,7 @@ export default function CreativeTemplate({
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="-1"
                     >
-                      {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'P'}
+                      {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'L'}
                     </text>
                     <text 
                       x="30" 
@@ -711,7 +711,7 @@ export default function CreativeTemplate({
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="0.5"
                     >
-                      {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ortfolio'}
+                      {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ogo'}
                     </text>
                   </svg>
                 );
@@ -2282,9 +2282,11 @@ export default function CreativeTemplate({
                   </div>
                 )}
               </button>
-              <p className="text-gray-800 text-sm md:text-base font-bold leading-relaxed mb-6 max-w-md">
-                {content.footerDescription || content.hero?.subtitle || 'Creating amazing digital experiences with passion and creativity! 🚀'}
-              </p>
+              {(content.footerDescription || content.hero?.subtitle) && (
+                <p className="text-gray-800 text-sm md:text-base font-bold leading-relaxed mb-6 max-w-md">
+                  {content.footerDescription || content.hero?.subtitle}
+                </p>
+              )}
               <div className="space-y-3">
                 {content.contact?.email && (
                   <motion.a 

@@ -169,7 +169,7 @@ export default function ResumeBuilder() {
     const resumeData = watch();
     
     // Check if there's enough data to enhance
-    if (!resumeData.personalInfo?.fullName && !resumeData.experience?.[0]?.company) {
+    if (!resumeData.personalInfo?.fullName && !resumeData.experience?.[0]?.company && !resumeData.skills?.[0]?.category) {
       toast.error('Please fill in some information first');
       return;
     }
@@ -181,173 +181,101 @@ export default function ResumeBuilder() {
       // Save current values for undo
       const currentValues = {
         summary: resumeData.summary,
-        'experience.0.description.0': resumeData.experience?.[0]?.description?.[0],
-        'skills.0.items': resumeData.skills?.[0]?.items,
-        'projects.0.name': resumeData.projects?.[0]?.name,
-        'projects.0.description': resumeData.projects?.[0]?.description,
-        'projects.0.technologies': resumeData.projects?.[0]?.technologies,
+        skills: resumeData.skills,
+        projects: resumeData.projects,
+        education: resumeData.education,
+        certifications: resumeData.certifications
       };
       setPreviousValues(currentValues);
       
-      // Parse AI response and extract useful content
-      let aiContent = data.enhanced;
+      // The new API returns structured JSON directly in data.parsed
+      const parsed = data.parsed;
       let updatedSections = [];
       
-      // Check if response is JSON (fallback handling)
-      let parsedData = null;
-      try {
-        // Try to extract JSON if it's wrapped in code blocks
-        const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-          parsedData = JSON.parse(jsonMatch[1]);
-        } else if (aiContent.trim().startsWith('{')) {
-          parsedData = JSON.parse(aiContent);
-        }
-      } catch (e) {
-        // Not JSON, continue with markdown parsing
-      }
+      console.log('📦 Received parsed data:', parsed);
       
-      // If we got JSON, convert it to markdown format for parsing
-      if (parsedData && parsedData.resume) {
-        const resume = parsedData.resume;
-        aiContent = '';
-        if (resume.Summary) aiContent += `**Summary**\n${resume.Summary}\n\n`;
-        if (resume.Skills) aiContent += `**Skills**\n${resume.Skills}\n\n`;
-        if (resume.Projects && resume.Projects[0]) {
-          const proj = resume.Projects[0];
-          aiContent += `**Projects**\nProject: ${proj.name}\nDescription: ${proj.description}\nTechnologies: ${proj.technologies}\n`;
-          if (proj.github) aiContent += `GitHub: ${proj.github}\n`;
-          if (proj.link) aiContent += `Live: ${proj.link}\n`;
-        }
-        if (resume.Education && resume.Education[0]) {
-          aiContent += `\n**Education**\n${resume.Education[0].degree} in ${resume.Education[0].field}\n`;
-        }
-      }
-      
-      // 1. Extract professional summary
-      const summaryMatch = aiContent.match(/\*\*Summary\*\*([\s\S]*?)(?=\*\*|$)/i);
-      if (summaryMatch && summaryMatch[1]) {
-        const summary = summaryMatch[1].trim();
-        setValue('summary', summary);
+      // 1. Update Summary
+      if (parsed.summary && parsed.summary.trim()) {
+        setValue('summary', parsed.summary);
         updatedSections.push('Summary');
       }
       
-      // 2. Extract experience bullet points
-      const experienceMatch = aiContent.match(/\*\*Experience\*\*([\s\S]*?)(?=\*\*|$)/i);
-      if (experienceMatch && experienceMatch[1]) {
-        const experienceBullets = experienceMatch[1]
-          .split('\n')
-          .filter(line => line.trim().startsWith('*'))
-          .map(line => line.replace(/^\*\s*/, '').trim())
-          .filter(line => line.length > 0);
+      // 2. Update Skills - now in separate categories
+      if (parsed.skills && Array.isArray(parsed.skills) && parsed.skills.length > 0) {
+        // Clear existing skills first
+        setValue('skills', []);
         
-        if (experienceBullets.length > 0) {
-          experienceBullets.forEach((bullet, index) => {
-            setValue(`experience.0.description.${index}`, bullet);
-          });
-          updatedSections.push('Experience');
-        }
-      }
-      
-      // 3. Extract and enhance skills
-      const skillsMatch = aiContent.match(/\*\*Skills?\*\*([\s\S]*?)(?=\*\*|$)/i);
-      if (skillsMatch && skillsMatch[1]) {
-        const skillsText = skillsMatch[1].trim();
-        // Look for categorized skills format (Frontend:, Backend:, etc.)
-        const skillLines = skillsText.split('\n')
-          .filter(line => line.trim() && (line.includes(':') || line.trim().startsWith('*') || line.trim().startsWith('-')))
-          .map(line => line.replace(/^[\*\-]\s*/, '').trim())
-          .filter(line => line.length > 10) // Filter out very short lines
-          .join('\n');
-        
-        if (skillLines) {
-          // Update the first skills entry with all organized skills
-          setValue('skills.0.category', 'Technical Skills');
-          setValue('skills.0.items', skillLines);
-          updatedSections.push('Skills');
-        }
-      }
-      
-      // 4. Extract and enhance ALL projects intelligently
-      const projectsMatch = aiContent.match(/\*\*Projects?\*\*([\s\S]*?)(?=\*\*|$)/i);
-      if (projectsMatch && projectsMatch[1]) {
-        const projectText = projectsMatch[1].trim();
-        console.log('📦 Projects section found:', projectText.substring(0, 200));
-        
-        // Split into individual projects - look for "Project" followed by number or name
-        const projectBlocks = projectText.split(/(?=Project\s*(?:\d+|:))/i).filter(block => block.trim().length > 10);
-        console.log('📦 Found', projectBlocks.length, 'project blocks');
-        
-        // Get current projects from form
-        const currentProjects = resumeData.projects || [];
-        let projectsUpdated = 0;
-        
-        // Process each project block
-        projectBlocks.forEach((block, blockIndex) => {
-          console.log(`\n📦 Processing block ${blockIndex}:`, block.substring(0, 100));
-          
-          // Try to match with existing projects by index or name
-          let targetIndex = blockIndex;
-          
-          // If we have more blocks than projects, skip extra blocks
-          if (targetIndex >= currentProjects.length) return;
-          
-          const project = currentProjects[targetIndex];
-          if (!project) return;
-          
-          console.log(`📦 Updating project ${targetIndex}: ${project.name}`);
-          
-          // Extract description - look for text after "Description:" or after project name
-          const descMatch = block.match(/Description:\s*([^\n]+(?:\n(?!(?:Technologies?|Project|GitHub|Live):)[^\n]+)*)/i);
-          if (descMatch && descMatch[1]) {
-            const description = descMatch[1].trim();
-            if (description && description.length > 20) {
-              console.log('✅ Setting description:', description.substring(0, 50));
-              setValue(`projects.${targetIndex}.description`, description);
-              projectsUpdated++;
-            }
-          }
-          
-          // Extract technologies
-          const techMatch = block.match(/(?:Technologies?|Tech Stack):\s*([^\n]+)/i);
-          if (techMatch && techMatch[1]) {
-            console.log('✅ Setting technologies:', techMatch[1].trim());
-            setValue(`projects.${targetIndex}.technologies`, techMatch[1].trim());
-          }
-          
-          // Extract GitHub link (preserve existing)
-          if (!project.github) {
-            const githubMatch = block.match(/GitHub:\s*(https?:\/\/[^\s\n]+)/i);
-            if (githubMatch && githubMatch[1]) {
-              setValue(`projects.${targetIndex}.github`, githubMatch[1].trim());
-            }
-          }
-          
-          // Extract live link (preserve existing)
-          if (!project.link) {
-            const liveMatch = block.match(/Live:\s*(https?:\/\/[^\s\n]+)/i);
-            if (liveMatch && liveMatch[1]) {
-              setValue(`projects.${targetIndex}.link`, liveMatch[1].trim());
-            }
+        // Add each skill category
+        parsed.skills.forEach((skillCategory, index) => {
+          if (skillCategory.category && skillCategory.items) {
+            const items = Array.isArray(skillCategory.items) 
+              ? skillCategory.items.join(', ') 
+              : skillCategory.items;
+            
+            setValue(`skills.${index}.category`, skillCategory.category);
+            setValue(`skills.${index}.items`, items);
           }
         });
-        
-        if (projectsUpdated > 0) {
-          updatedSections.push(`${projectsUpdated} Project(s)`);
-        }
+        updatedSections.push(`${parsed.skills.length} Skill Categories`);
       }
       
-      // 5. Extract education enhancements
-      const educationMatch = aiContent.match(/\*\*Education\*\*([\s\S]*?)(?=\*\*|$)/i);
-      if (educationMatch && educationMatch[1]) {
-        const eduText = educationMatch[1].trim();
-        // Look for GPA or achievements
-        const gpaMatch = eduText.match(/GPA[:\s]+([0-9.]+)/i);
-        if (gpaMatch && gpaMatch[1] && !resumeData.education?.[0]?.gpa) {
-          setValue('education.0.gpa', gpaMatch[1]);
-          updatedSections.push('Education');
-        }
+      // 3. Update Projects
+      if (parsed.projects && Array.isArray(parsed.projects) && parsed.projects.length > 0) {
+        parsed.projects.forEach((project, index) => {
+          if (project.name) {
+            setValue(`projects.${index}.name`, project.name);
+          }
+          if (project.description) {
+            setValue(`projects.${index}.description`, project.description);
+          }
+          if (project.technologies) {
+            setValue(`projects.${index}.technologies`, project.technologies);
+          }
+          if (project.github) {
+            setValue(`projects.${index}.github`, project.github);
+          }
+          if (project.link) {
+            setValue(`projects.${index}.link`, project.link);
+          }
+        });
+        updatedSections.push(`${parsed.projects.length} Project(s)`);
       }
+      
+      // 4. Update Education
+      if (parsed.education && Array.isArray(parsed.education) && parsed.education.length > 0) {
+        parsed.education.forEach((edu, index) => {
+          if (edu.degree) {
+            setValue(`education.${index}.degree`, edu.degree);
+          }
+          if (edu.institution) {
+            setValue(`education.${index}.institution`, edu.institution);
+          }
+          if (edu.graduationDate) {
+            setValue(`education.${index}.graduationDate`, edu.graduationDate);
+          }
+          if (edu.gpa) {
+            setValue(`education.${index}.gpa`, edu.gpa);
+          }
+        });
+        updatedSections.push('Education');
+      }
+      
+      // 5. Update Certifications
+      if (parsed.certifications && Array.isArray(parsed.certifications) && parsed.certifications.length > 0) {
+        parsed.certifications.forEach((cert, index) => {
+          if (cert.name) {
+            setValue(`certifications.${index}.name`, cert.name);
+          }
+          if (cert.issuer) {
+            setValue(`certifications.${index}.issuer`, cert.issuer);
+          }
+          if (cert.date) {
+            setValue(`certifications.${index}.date`, cert.date);
+          }
+        });
+        updatedSections.push(`${parsed.certifications.length} Certification(s)`);
+      }
+
       
       // Show success message with updated sections and undo option
       const sectionsText = updatedSections.length > 0 

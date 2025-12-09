@@ -140,7 +140,7 @@ const AboutSection = ({ content, getSkillIcon }) => {
             <div key={index} className="flex gap-3 items-start">
               <div className="w-2 h-2 rounded-full mt-3 flex-shrink-0 bg-black" />
               <div>
-                {edu.title && <p className="text-black font-semibold text-sm md:text-base lg:text-lg">{edu.title}</p>}
+                {(edu.title || edu.degree) && <p className="text-black font-semibold text-sm md:text-base lg:text-lg">{edu.title || edu.degree}</p>}
                 {(edu.institution || edu.year) && (
                   <p className="text-gray-600 text-xs md:text-sm lg:text-base font-normal mt-1">
                     {edu.institution}{edu.institution && edu.year && ' | '}{edu.year}
@@ -168,10 +168,10 @@ const AboutSection = ({ content, getSkillIcon }) => {
             <div key={index} className="flex gap-3 items-start">
               <div className="w-2 h-2 rounded-full mt-3 flex-shrink-0 bg-black" />
               <div>
-                {cert.title && <p className="text-black font-semibold text-sm md:text-base lg:text-lg">{cert.title}</p>}
-                {(cert.institution || cert.date) && (
+                {(cert.title || cert.name) && <p className="text-black font-semibold text-sm md:text-base lg:text-lg">{cert.title || cert.name}</p>}
+                {((cert.institution || cert.provider) || cert.date) && (
                   <p className="text-gray-600 text-xs md:text-sm lg:text-base font-normal mt-1">
-                    {cert.institution}{cert.institution && cert.date && ' — '}{cert.date}
+                    {cert.institution || cert.provider}{(cert.institution || cert.provider) && cert.date && ' — '}{cert.date}
                   </p>
                 )}
               </div>
@@ -515,7 +515,7 @@ export default function MinimalTemplate({
               />
             ) : (
               <span className="text-2xl md:text-3xl font-bold text-black">
-                {portfolio?.logoText || content?.hero?.title?.split(' ')[0] || 'Portfolio'}
+                {portfolio?.logoText || content?.hero?.title?.split(' ')[0] || 'Logo'}
               </span>
             )}
           </button>
@@ -1612,13 +1612,15 @@ export default function MinimalTemplate({
                   />
                 ) : (
                   <span className="text-2xl md:text-3xl font-bold text-black">
-                    {portfolio?.logoText || content?.hero?.title?.split(' ')[0] || 'Portfolio'}
+                    {portfolio?.logoText || content?.hero?.title?.split(' ')[0] || 'Logo'}
                   </span>
                 )}
               </button>
-              <p className="text-gray-600 text-sm md:text-base font-normal leading-relaxed mb-4 max-w-md">
-                {content.footerDescription || content.hero?.subtitle || 'Full-Stack Developer crafting modern web applications with clean code and seamless user experiences.'}
-              </p>
+              {(content.footerDescription || content.hero?.subtitle) && (
+                <p className="text-gray-600 text-sm md:text-base font-normal leading-relaxed mb-4 max-w-md">
+                  {content.footerDescription || content.hero?.subtitle}
+                </p>
+              )}
               <div className="space-y-2">
                 {content.contact?.email && (
                   <a 

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FileText, Mail, Lock, User, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { FileText, Mail, Lock, User, ArrowRight, Sparkles, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { handleApiError } from '../utils/errorHandler';
@@ -13,9 +13,34 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const { register, handleSubmit, formState: { errors }, watch } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, watch } = useForm({
+    mode: 'onBlur',
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    }
+  });
 
   const password = watch('password');
+
+  // Password strength calculator
+  const passwordStrength = useMemo(() => {
+    if (!password) return { strength: 0, label: '', color: '' };
+    
+    let strength = 0;
+    if (password.length >= 6) strength++;
+    if (password.length >= 10) strength++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const colors = ['', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-green-500', 'bg-green-600'];
+    
+    return { strength, label: labels[strength], color: colors[strength] };
+  }, [password]);
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -105,20 +130,26 @@ export default function Register() {
                   </div>
                   <input
                     type="text"
+                    autoComplete="name"
                     {...register('name', { 
                       required: 'Name is required',
                       minLength: {
                         value: 2,
                         message: 'Name must be at least 2 characters'
+                      },
+                      pattern: {
+                        value: /^[a-zA-Z\s]+$/,
+                        message: 'Name can only contain letters and spaces'
                       }
                     })}
-                    className={`w-full pl-10 pr-4 py-3 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="John Doe"
                   />
                 </div>
                 {errors.name && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.name.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.name.message}</span>
                   </p>
                 )}
               </div>
@@ -132,6 +163,7 @@ export default function Register() {
                   </div>
                   <input
                     type="email"
+                    autoComplete="email"
                     {...register('email', { 
                       required: 'Email is required',
                       pattern: {
@@ -139,13 +171,14 @@ export default function Register() {
                         message: 'Invalid email address'
                       }
                     })}
-                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="you@example.com"
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.email.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.email.message}</span>
                   </p>
                 )}
               </div>
@@ -159,27 +192,54 @@ export default function Register() {
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     {...register('password', { 
                       required: 'Password is required',
                       minLength: {
                         value: 6,
                         message: 'Password must be at least 6 characters'
+                      },
+                      pattern: {
+                        value: /^(?=.*[a-zA-Z])(?=.*\d).+$/,
+                        message: 'Password must contain letters and numbers'
                       }
                     })}
-                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-12 py-3 border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    tabIndex={-1}
                   >
-                    <span className="text-sm">{showPassword ? 'Hide' : 'Show'}</span>
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                
+                {/* Password Strength Indicator */}
+                {password && password.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1 flex-1 rounded-full transition-all ${
+                            level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-xs ${passwordStrength.strength >= 3 ? 'text-green-600' : 'text-gray-600'}`}>
+                      Password strength: {passwordStrength.label}
+                    </p>
+                  </div>
+                )}
+                
                 {errors.password && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.password.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.password.message}</span>
                   </p>
                 )}
               </div>
@@ -193,17 +253,19 @@ export default function Register() {
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     {...register('confirmPassword', { 
                       required: 'Please confirm your password',
                       validate: value => value === password || 'Passwords do not match'
                     })}
-                    className={`w-full pl-10 pr-4 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-indigo-500'} rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all`}
                     placeholder="••••••••"
                   />
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <span>⚠</span> {errors.confirmPassword.message}
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>{errors.confirmPassword.message}</span>
                   </p>
                 )}
               </div>
@@ -211,10 +273,10 @@ export default function Register() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isSubmitting}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {loading || isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Creating account...</span>

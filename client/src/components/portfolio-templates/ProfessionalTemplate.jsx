@@ -145,7 +145,7 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 style={{ backgroundColor: themeColors.primary }}
               />
               <div>
-                {edu.title && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{edu.title}</p>}
+                {(edu.title || edu.degree) && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{edu.title || edu.degree}</p>}
                 {(edu.institution || edu.year) && (
                   <p className="text-[#ADB7BE] text-xs md:text-sm lg:text-base font-normal mt-1">
                     {edu.institution}{edu.institution && edu.year && ' | '}{edu.year}
@@ -176,10 +176,10 @@ const AboutSection = ({ content, getSkillIcon, portfolio }) => {
                 style={{ backgroundColor: themeColors.primary }}
               />
               <div>
-                {cert.title && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{cert.title}</p>}
-                {(cert.institution || cert.date) && (
+                {(cert.title || cert.name) && <p className="text-white font-semibold text-sm md:text-base lg:text-lg">{cert.title || cert.name}</p>}
+                {((cert.institution || cert.provider) || cert.date) && (
                   <p className="text-[#ADB7BE] text-xs md:text-sm lg:text-base font-normal mt-1">
-                    {cert.institution}{cert.institution && cert.date && ' — '}{cert.date}
+                    {cert.institution || cert.provider}{(cert.institution || cert.provider) && cert.date && ' — '}{cert.date}
                   </p>
                 )}
               </div>
@@ -566,7 +566,7 @@ export default function ProfessionalTemplate({
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="-1"
                     >
-                      {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'P'}
+                      {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'L'}
                     </text>
                     <text 
                       x="30" 
@@ -577,7 +577,7 @@ export default function ProfessionalTemplate({
                       fontFamily="system-ui, -apple-system, sans-serif"
                       letterSpacing="0.5"
                     >
-                      {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ortfolio'}
+                      {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ogo'}
                     </text>
                   </svg>
                 );
@@ -1927,7 +1927,7 @@ export default function ProfessionalTemplate({
                           fontFamily="system-ui, -apple-system, sans-serif"
                           letterSpacing="-1"
                         >
-                          {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'P'}
+                          {(portfolio?.logoText || content?.hero?.title)?.[0]?.toUpperCase() || 'L'}
                         </text>
                         <text 
                           x="30" 
@@ -1938,16 +1938,18 @@ export default function ProfessionalTemplate({
                           fontFamily="system-ui, -apple-system, sans-serif"
                           letterSpacing="0.5"
                         >
-                          {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ortfolio'}
+                          {(portfolio?.logoText || content?.hero?.title?.split(' ')[0])?.slice(1)?.toLowerCase() || 'ogo'}
                         </text>
                       </svg>
                     );
                   })()
                 )}
               </button>
-              <p className="text-gray-400 text-sm md:text-base font-normal leading-relaxed mb-4 max-w-md">
-                {content.footerDescription || content.hero?.subtitle || 'Full-Stack Developer crafting modern web applications with clean code and seamless user experiences.'}
-              </p>
+              {(content.footerDescription || content.hero?.subtitle) && (
+                <p className="text-gray-400 text-sm md:text-base font-normal leading-relaxed mb-4 max-w-md">
+                  {content.footerDescription || content.hero?.subtitle}
+                </p>
+              )}
               <div className="space-y-2">
                 {content.contact?.email && (
                   <a 
